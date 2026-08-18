@@ -289,10 +289,15 @@ export default function DashboardClient({
   const { fmt } = useSettings();
   const router = useRouter();
   const [tip, setTip] = useState<string | null>(null);
+  const [showReminders, setShowReminders] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [commitmentOptions, setCommitmentOptions] = useState<CommitmentOption[]>([]);
+
+  useEffect(() => {
+    if (sessionStorage.getItem("platica_reminders_dismissed")) setShowReminders(false);
+  }, []);
 
   useEffect(() => {
     fetch("/api/commitments")
@@ -488,11 +493,23 @@ export default function DashboardClient({
       )}
 
       {/* Recordatorios de pago */}
-      {(upcomingPayments.length > 0 || overduePayments.length > 0) && (
+      {showReminders && (upcomingPayments.length > 0 || overduePayments.length > 0) && (
         <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 space-y-2">
-          <div className="flex items-center gap-2 mb-1">
-            <Bell className="w-4 h-4 text-blue-600" />
-            <h3 className="text-sm font-semibold text-blue-900">Recordatorios de pago</h3>
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <Bell className="w-4 h-4 text-blue-600" />
+              <h3 className="text-sm font-semibold text-blue-900">Recordatorios de pago</h3>
+            </div>
+            <button
+              onClick={() => {
+                setShowReminders(false);
+                sessionStorage.setItem("platica_reminders_dismissed", "true");
+              }}
+              className="text-blue-400 hover:text-blue-700 transition-colors"
+              aria-label="Cerrar recordatorios"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
           {overduePayments.map((c) => (
             <div key={c._id} className="flex items-center justify-between text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">
