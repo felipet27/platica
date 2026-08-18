@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Target, Trash2, TrendingUp, AlertTriangle, Pencil, X } from "lucide-react";
+import { PageInfoTooltip } from "@/components/ui/PageInfoTooltip";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -163,7 +164,10 @@ export default function SavingsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Planes de ahorro</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-gray-900">Planes de ahorro</h1>
+            <PageInfoTooltip text="Crea metas de ahorro con un monto objetivo y una fecha límite. Cada vez que reserves dinero, registra el aporte en el plan correspondiente y observa tu progreso. Los aportes también mejoran tu tasa de ahorro en Consejos financieros." />
+          </div>
           <p className="text-gray-500 text-sm mt-1">{plans.length} planes activos</p>
         </div>
         <button

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { CATEGORIES } from "@/lib/categories";
+import { PageInfoTooltip } from "@/components/ui/PageInfoTooltip";
 
 interface Commitment {
   _id: string;
@@ -122,7 +123,10 @@ export default function CommitmentsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Compromisos fijos</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-gray-900">Compromisos fijos</h1>
+            <PageInfoTooltip text="Acá registras los pagos e ingresos que se repiten cada mes: arriendo, servicios, salario, préstamos. Puedes activarlos o desactivarlos, asignarles un día de pago para recibir recordatorios, y llevar el conteo de cuotas de préstamos." />
+          </div>
           <p className="text-gray-500 text-sm mt-1">
             Gastos e ingresos recurrentes que tienes cada mes
           </p>

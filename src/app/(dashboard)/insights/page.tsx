@@ -25,6 +25,7 @@ import {
   Info,
 } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
+import { PageInfoTooltip } from "@/components/ui/PageInfoTooltip";
 
 interface Alert {
   category: string;
@@ -135,7 +136,10 @@ export default function InsightsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Consejos financieros</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-gray-900">Consejos financieros</h1>
+          <PageInfoTooltip text="Análisis automático de tus hábitos financieros. Calcula tu tasa de ahorro mensual, aplica la regla 50/30/20, detecta categorías de gasto que aumentaron demasiado y te da recomendaciones personalizadas según tus datos reales." />
+        </div>
         <p className="text-gray-500 mt-1">Análisis de tus hábitos con recomendaciones para mejorar</p>
       </div>
 

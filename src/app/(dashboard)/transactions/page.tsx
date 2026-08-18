@@ -5,6 +5,7 @@ import { Plus, Trash2, Filter, X } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { useSettings } from "@/contexts/SettingsContext";
 import { CATEGORIES } from "@/lib/categories";
+import { PageInfoTooltip } from "@/components/ui/PageInfoTooltip";
 
 interface Transaction {
   _id: string;
@@ -101,7 +102,10 @@ export default function TransactionsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Transacciones</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-gray-900">Transacciones</h1>
+          <PageInfoTooltip text="Historial completo de todos tus movimientos de dinero: ingresos y gastos. Filtra por mes, tipo o categoría para analizar cualquier período. Cada transacción que registras alimenta el balance, los gráficos y los consejos del Dashboard." />
+        </div>
         <p className="text-gray-500 text-sm mt-1">{total} transacciones en total</p>
       </div>
 

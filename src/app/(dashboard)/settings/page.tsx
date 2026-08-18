@@ -2,6 +2,7 @@
 
 import { useSettings, CURRENCIES } from "@/contexts/SettingsContext";
 import { Settings, Check } from "lucide-react";
+import { PageInfoTooltip } from "@/components/ui/PageInfoTooltip";
 
 export default function SettingsPage() {
   const { currency, setCurrency } = useSettings();
@@ -9,7 +10,10 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Configuración</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-gray-900">Configuración</h1>
+          <PageInfoTooltip text="Personaliza la forma en que platíca muestra tu información. Por ahora puedes elegir la moneda en que se expresan tus cifras (COP, USD, EUR, MXN, BRL). La preferencia se guarda en tu cuenta y aplica en todo el dashboard." />
+        </div>
         <p className="text-gray-500 text-sm mt-1">Personaliza cómo se muestra tu información</p>
       </div>
 
