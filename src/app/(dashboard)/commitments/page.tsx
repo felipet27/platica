@@ -191,6 +191,7 @@ export default function CommitmentsPage() {
                   step="0.01"
                   value={form.amount}
                   onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
                   placeholder="0.00"
                 />

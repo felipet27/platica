@@ -244,6 +244,7 @@ export default function SavingsPage() {
                   step="0.01"
                   value={form.targetAmount}
                   onChange={(e) => setForm({ ...form, targetAmount: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
                   placeholder="0.00"
                 />
@@ -257,6 +258,7 @@ export default function SavingsPage() {
                   step="0.01"
                   value={form.currentAmount}
                   onChange={(e) => setForm({ ...form, currentAmount: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
                   placeholder="0.00"
                 />
@@ -271,6 +273,7 @@ export default function SavingsPage() {
                   step="0.01"
                   value={form.monthlyContribution}
                   onChange={(e) => setForm({ ...form, monthlyContribution: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
                   placeholder="0.00"
                 />
@@ -348,6 +351,7 @@ export default function SavingsPage() {
                   autoFocus
                   value={contributionAmount}
                   onChange={(e) => setContributionAmount(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
                   placeholder="0.00"
                 />

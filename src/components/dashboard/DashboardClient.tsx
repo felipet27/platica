@@ -11,7 +11,6 @@ import {
   Lightbulb,
   CheckCircle2,
   Clock,
-  Plus,
   Wallet,
   X,
   Info,
@@ -41,30 +40,6 @@ import { useSettings } from "@/contexts/SettingsContext";
 
 const PIE_COLORS = ["#22c55e", "#f59e0b", "#3b82f6", "#ef4444", "#8b5cf6"];
 
-const CATEGORIES = {
-  income: ["Salario", "Freelance", "Inversiones", "Ventas", "Otros ingresos"],
-  expense: [
-    "Alimentación", "Mercado", "Transporte", "Pasajes", "Vivienda",
-    "Salud", "Educación", "Entretenimiento", "Paseos", "Ropa",
-    "Servicios", "Gastos hormiga", "Deudas", "Otros gastos",
-  ],
-};
-
-const EMPTY_FORM = {
-  type: "expense" as "income" | "expense",
-  amount: "",
-  category: "",
-  description: "",
-  date: new Date().toISOString().slice(0, 10),
-  commitmentId: "",
-};
-
-interface CommitmentOption {
-  _id: string;
-  name: string;
-  type: "income" | "expense";
-  isActive: boolean;
-}
 
 interface CommitmentItem {
   _id: string;
@@ -135,12 +110,10 @@ function OnboardingChecklist({
   hasCommitments,
   hasIncome,
   hasExpense,
-  onNewTransaction,
 }: {
   hasCommitments: boolean;
   hasIncome: boolean;
   hasExpense: boolean;
-  onNewTransaction: () => void;
 }) {
   const [dismissed, setDismissed] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -161,21 +134,13 @@ function OnboardingChecklist({
       done: hasIncome,
       label: "Registra tu primer ingreso",
       description: "Tu salario, un pago extra, lo que sea.",
-      action: (
-        <button onClick={onNewTransaction} className="text-xs text-green-600 font-medium hover:underline">
-          Nueva transacción →
-        </button>
-      ),
+      action: <Link href="/commitments" className="text-xs text-green-600 font-medium hover:underline">Ir a Compromisos →</Link>,
     },
     {
       done: hasExpense,
       label: "Registra tu primer gasto",
       description: "Mercado, transporte, cualquier egreso.",
-      action: (
-        <button onClick={onNewTransaction} className="text-xs text-green-600 font-medium hover:underline">
-          Nueva transacción →
-        </button>
-      ),
+      action: <Link href="/commitments" className="text-xs text-green-600 font-medium hover:underline">Ir a Compromisos →</Link>,
     },
   ];
 
@@ -290,20 +255,9 @@ export default function DashboardClient({
   const router = useRouter();
   const [tip, setTip] = useState<string | null>(null);
   const [showReminders, setShowReminders] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [submitting, setSubmitting] = useState(false);
-  const [commitmentOptions, setCommitmentOptions] = useState<CommitmentOption[]>([]);
 
   useEffect(() => {
     if (sessionStorage.getItem("platica_reminders_dismissed")) setShowReminders(false);
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/commitments")
-      .then((r) => r.json())
-      .then((d) => setCommitmentOptions(Array.isArray(d) ? d.filter((c: CommitmentOption) => c.isActive) : []))
-      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -317,11 +271,6 @@ export default function DashboardClient({
       })
       .catch(() => {});
   }, []);
-
-  function openModal() {
-    setForm(EMPTY_FORM);
-    setShowModal(true);
-  }
 
   const [payingId, setPayingId] = useState<string | null>(null);
 
@@ -352,23 +301,6 @@ export default function DashboardClient({
     }
 
     setPayingId(null);
-    router.refresh();
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSubmitting(true);
-    await fetch("/api/transactions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        amount: parseFloat(form.amount),
-        commitmentId: form.commitmentId || undefined,
-      }),
-    });
-    setSubmitting(false);
-    setShowModal(false);
     router.refresh();
   }
 
@@ -450,18 +382,9 @@ export default function DashboardClient({
     <div className="space-y-6">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Hola, {userName.split(" ")[0]}</h1>
-          <p className="text-gray-400 text-sm mt-0.5">{currentMonthLabel}</p>
-        </div>
-        <button
-          onClick={openModal}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-        >
-          <Plus className="w-4 h-4" />
-          Nueva transacción
-        </button>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Hola, {userName.split(" ")[0]}</h1>
+        <p className="text-gray-400 text-sm mt-0.5">{currentMonthLabel}</p>
       </div>
 
       {/* Onboarding checklist */}
@@ -469,7 +392,6 @@ export default function DashboardClient({
         hasCommitments={commitments.length > 0}
         hasIncome={hasIncome}
         hasExpense={hasExpense}
-        onNewTransaction={openModal}
       />
 
       {/* Consejo rápido */}
@@ -581,12 +503,7 @@ export default function DashboardClient({
           </div>
         ) : (
           <div className="text-center py-4">
-            <p className="text-sm text-gray-400">
-              Aún no hay movimientos este mes.{" "}
-              <button onClick={openModal} className="text-green-600 font-medium hover:underline">
-                Registra tu primera transacción →
-              </button>
-            </p>
+            <p className="text-sm text-gray-400">Aún no hay movimientos este mes.</p>
           </div>
         )}
       </div>
@@ -782,10 +699,7 @@ export default function DashboardClient({
           {incomeByCategory.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 text-center">
               <TrendingUp className="w-8 h-8 text-gray-200 mb-2" />
-              <p className="text-sm text-gray-400 mb-3">Sin ingresos este mes</p>
-              <button onClick={openModal} className="text-xs text-green-600 font-medium hover:underline">
-                Registrar ingreso →
-              </button>
+              <p className="text-sm text-gray-400">Sin ingresos este mes</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -815,22 +729,17 @@ export default function DashboardClient({
 
       {/* Últimas transacciones */}
       <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <h2 className="font-semibold text-gray-900">Últimas transacciones</h2>
-            <InfoTooltip text="Los 5 movimientos más recientes. Cada transacción suma a tus ingresos o gastos del mes." />
-          </div>
-          <button onClick={openModal} className="flex items-center gap-1.5 text-xs font-medium text-green-700 hover:text-green-900 bg-green-50 px-3 py-1.5 rounded-lg transition-colors">
-            <Plus className="w-3.5 h-3.5" /> Nueva transacción
-          </button>
+        <div className="flex items-center gap-2 mb-5">
+          <h2 className="font-semibold text-gray-900">Últimas transacciones</h2>
+          <InfoTooltip text="Los 5 movimientos más recientes. Cada transacción suma a tus ingresos o gastos del mes." />
         </div>
 
         {recentTransactions.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-sm text-gray-400 mb-3">No hay transacciones aún</p>
-            <button onClick={openModal} className="text-sm text-green-600 font-medium hover:text-green-700">
-              Registrar primera transacción →
-            </button>
+            <Link href="/commitments" className="text-sm text-green-600 font-medium hover:text-green-700">
+              Registrar en Compromisos →
+            </Link>
           </div>
         ) : (
           <ul className="divide-y divide-gray-50">
@@ -962,125 +871,6 @@ export default function DashboardClient({
         </div>
       )}
 
-      {/* Modal nueva transacción */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-semibold text-gray-900">Nueva transacción</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
-                {(["expense", "income"] as const).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setForm({ ...form, type: t, category: "", commitmentId: "" })}
-                    className={`flex-1 py-2 rounded-md font-medium text-sm transition-colors ${
-                      form.type === t
-                        ? t === "income" ? "bg-white text-green-700 shadow-sm" : "bg-white text-red-600 shadow-sm"
-                        : "text-gray-500"
-                    }`}
-                  >
-                    {t === "income" ? "Ingreso" : "Gasto"}
-                  </button>
-                ))}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Monto</label>
-                <input
-                  type="number"
-                  required
-                  min="0.01"
-                  step="0.01"
-                  value={form.amount}
-                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none text-lg font-semibold"
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-                <select
-                  required
-                  value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                >
-                  <option value="">Seleccionar...</option>
-                  {CATEGORIES[form.type].map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-                <input
-                  type="text"
-                  required
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                  placeholder="¿En qué fue?"
-                />
-              </div>
-
-              {commitmentOptions.filter((c) => c.type === form.type).length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Compromiso <span className="text-gray-400 font-normal">(opcional)</span>
-                  </label>
-                  <select
-                    value={form.commitmentId}
-                    onChange={(e) => setForm({ ...form, commitmentId: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                  >
-                    <option value="">Sin compromiso</option>
-                    {commitmentOptions.filter((c) => c.type === form.type).map((c) => (
-                      <option key={c._id} value={c._id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
-                <input
-                  type="date"
-                  required
-                  value={form.date}
-                  onChange={(e) => setForm({ ...form, date: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 font-medium text-sm"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className={`flex-1 py-2.5 rounded-lg font-medium text-sm text-white disabled:opacity-50 transition-colors ${
-                    form.type === "income" ? "bg-green-600 hover:bg-green-700" : "bg-red-500 hover:bg-red-600"
-                  }`}
-                >
-                  {submitting ? "Guardando..." : form.type === "income" ? "Registrar ingreso" : "Registrar gasto"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
