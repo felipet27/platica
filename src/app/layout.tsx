@@ -3,7 +3,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Plática - Finanzas Personales",
-  description: "Gestiona tus ingresos y egresos, recibe predicciones y alertas de ahorro.",
+  description: "Gestiona tus ingresos y egresos, visualiza tus compromisos del mes y recibe consejos de ahorro personalizados.",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
