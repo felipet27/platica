@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 import { startOfMonth, endOfMonth, subMonths } from "date-fns";
+import mongoose from "mongoose";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -11,6 +12,7 @@ export async function GET(req: NextRequest) {
   }
 
   await connectDB();
+  const userId = new mongoose.Types.ObjectId(session.user.id);
 
   const { searchParams } = new URL(req.url);
   const months = parseInt(searchParams.get("months") ?? "6");
@@ -26,11 +28,11 @@ export async function GET(req: NextRequest) {
     pipeline.map(async ({ start, end, label }) => {
       const [income, expense] = await Promise.all([
         Transaction.aggregate([
-          { $match: { userId: session.user.id, type: "income", date: { $gte: start, $lte: end } } },
+          { $match: { userId: userId, type: "income", date: { $gte: start, $lte: end } } },
           { $group: { _id: null, total: { $sum: "$amount" } } },
         ]),
         Transaction.aggregate([
-          { $match: { userId: session.user.id, type: "expense", date: { $gte: start, $lte: end } } },
+          { $match: { userId: userId, type: "expense", date: { $gte: start, $lte: end } } },
           { $group: { _id: null, total: { $sum: "$amount" } } },
         ]),
       ]);
@@ -49,7 +51,7 @@ export async function GET(req: NextRequest) {
   const categoryBreakdown = await Transaction.aggregate([
     {
       $match: {
-        userId: session.user.id,
+        userId: userId,
         type: "expense",
         date: { $gte: startOfMonth(now), $lte: endOfMonth(now) },
       },

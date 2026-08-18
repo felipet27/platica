@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, Filter } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { Plus, Trash2, Filter, X } from "lucide-react";
+import { formatDate } from "@/lib/utils";
+import { useSettings } from "@/contexts/SettingsContext";
 import { CATEGORIES } from "@/lib/categories";
 
 interface Transaction {
@@ -33,6 +34,7 @@ const EMPTY_FORM = {
 };
 
 export default function TransactionsPage() {
+  const { fmt } = useSettings();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -43,6 +45,8 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [commitments, setCommitments] = useState<CommitmentOption[]>([]);
+  const [deleteTransaction, setDeleteTransaction] = useState<Transaction | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
   useEffect(() => {
     fetch("/api/commitments")
@@ -85,9 +89,12 @@ export default function TransactionsPage() {
     fetchTransactions();
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar esta transacción?")) return;
-    await fetch(`/api/transactions/${id}`, { method: "DELETE" });
+  async function confirmDelete() {
+    if (!deleteTransaction) return;
+    setDeleteSubmitting(true);
+    await fetch(`/api/transactions/${deleteTransaction._id}`, { method: "DELETE" });
+    setDeleteTransaction(null);
+    setDeleteSubmitting(false);
     fetchTransactions();
   }
 
@@ -247,6 +254,40 @@ export default function TransactionsPage() {
         </div>
       )}
 
+      {/* Modal confirmar eliminación */}
+      {deleteTransaction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-semibold text-gray-900">Eliminar transacción</h2>
+              <button onClick={() => setDeleteTransaction(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-1">
+              ¿Seguro que quieres eliminar esta transacción?
+            </p>
+            <p className="text-sm font-medium text-gray-700 mb-6">&quot;{deleteTransaction.description}&quot;</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteTransaction(null)}
+                disabled={deleteSubmitting}
+                className="flex-1 py-2.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 font-medium disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleteSubmitting}
+                className="flex-1 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:opacity-50"
+              >
+                {deleteSubmitting ? "Eliminando..." : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Transactions list */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         {loading ? (
@@ -284,12 +325,12 @@ export default function TransactionsPage() {
                     </td>
                     <td className="px-5 py-3.5 whitespace-nowrap">
                       <span className={`text-sm font-semibold ${t.type === "income" ? "text-green-600" : "text-red-500"}`}>
-                        {t.type === "income" ? "+" : "-"}{formatCurrency(t.amount)}
+                        {t.type === "income" ? "+" : "-"}{fmt(t.amount)}
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
                       <button
-                        onClick={() => handleDelete(t._id)}
+                        onClick={() => setDeleteTransaction(t)}
                         className="p-1.5 text-gray-300 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
                       >
                         <Trash2 className="w-4 h-4" />

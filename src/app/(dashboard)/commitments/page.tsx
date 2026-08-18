@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Pencil, Trash2 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { useSettings } from "@/contexts/SettingsContext";
 import { CATEGORIES } from "@/lib/categories";
 
 interface Commitment {
@@ -27,6 +27,8 @@ export default function CommitmentsPage() {
   const [editing, setEditing] = useState<Commitment | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const [deleteCommitment, setDeleteCommitment] = useState<Commitment | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
   const fetchCommitments = useCallback(async () => {
     const res = await fetch("/api/commitments");
@@ -74,9 +76,12 @@ export default function CommitmentsPage() {
     fetchCommitments();
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar este compromiso?")) return;
-    await fetch(`/api/commitments/${id}`, { method: "DELETE" });
+  async function confirmDelete() {
+    if (!deleteCommitment) return;
+    setDeleteSubmitting(true);
+    await fetch(`/api/commitments/${deleteCommitment._id}`, { method: "DELETE" });
+    setDeleteCommitment(null);
+    setDeleteSubmitting(false);
     fetchCommitments();
   }
 
@@ -89,6 +94,7 @@ export default function CommitmentsPage() {
     fetchCommitments();
   }
 
+  const { fmt } = useSettings();
   const categories = CATEGORIES[form.type];
   const expenses = commitments.filter((c) => c.type === "expense");
   const incomes = commitments.filter((c) => c.type === "income");
@@ -205,13 +211,45 @@ export default function CommitmentsPage() {
         </div>
       )}
 
+      {/* Modal confirmar eliminación */}
+      {deleteCommitment && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-semibold text-gray-900">Eliminar compromiso</h2>
+              <button onClick={() => setDeleteCommitment(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-1">¿Seguro que quieres eliminar este compromiso?</p>
+            <p className="text-sm font-medium text-gray-700 mb-6">&quot;{deleteCommitment.name}&quot;</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteCommitment(null)}
+                disabled={deleteSubmitting}
+                className="flex-1 py-2.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 font-medium disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleteSubmitting}
+                className="flex-1 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:opacity-50"
+              >
+                {deleteSubmitting ? "Eliminando..." : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <CommitmentSection
         title="Gastos fijos"
         items={expenses}
         type="expense"
         emptyMessage="No tienes gastos fijos configurados. Agrega tus compromisos mensuales como arriendo, servicios, préstamos, etc."
         onEdit={openEdit}
-        onDelete={handleDelete}
+        onDelete={setDeleteCommitment}
         onToggle={toggleActive}
       />
 
@@ -221,7 +259,7 @@ export default function CommitmentsPage() {
         type="income"
         emptyMessage="No tienes ingresos fijos configurados. Agrega tu salario u otros ingresos recurrentes."
         onEdit={openEdit}
-        onDelete={handleDelete}
+        onDelete={setDeleteCommitment}
         onToggle={toggleActive}
       />
     </div>
@@ -242,9 +280,10 @@ function CommitmentSection({
   type: "income" | "expense";
   emptyMessage: string;
   onEdit: (c: Commitment) => void;
-  onDelete: (id: string) => void;
+  onDelete: (c: Commitment) => void;
   onToggle: (c: Commitment) => void;
 }) {
+  const { fmt } = useSettings();
   const activeTotal = items.filter((c) => c.isActive).reduce((s, c) => s + c.amount, 0);
 
   return (
@@ -257,7 +296,7 @@ function CommitmentSection({
               type === "income" ? "text-green-600" : "text-red-500"
             }`}
           >
-            Total activo: {formatCurrency(activeTotal)}
+            Total activo: {fmt(activeTotal)}
           </span>
         )}
       </div>
@@ -297,7 +336,7 @@ function CommitmentSection({
                       type === "income" ? "text-green-600" : "text-red-500"
                     }`}
                   >
-                    {formatCurrency(c.amount)}
+                    {fmt(c.amount)}
                   </span>
                 </td>
                 <td className="px-5 py-3.5">
@@ -323,7 +362,7 @@ function CommitmentSection({
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => onDelete(c._id)}
+                      onClick={() => onDelete(c)}
                       className="text-gray-300 hover:text-red-500 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />

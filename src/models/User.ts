@@ -8,6 +8,7 @@ export interface IUser extends Document {
   image?: string;
   twoFactorEnabled: boolean;
   twoFactorSecret?: string;
+  preferences?: { currency?: string };
   createdAt: Date;
 }
 
@@ -19,6 +20,9 @@ const UserSchema = new Schema<IUser>(
     image: { type: String },
     twoFactorEnabled: { type: Boolean, default: false },
     twoFactorSecret: { type: String, select: false },
+    preferences: {
+      currency: { type: String, default: "COP" },
+    },
   },
   { timestamps: true }
 );

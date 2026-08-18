@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Target, Trash2, TrendingUp, AlertTriangle } from "lucide-react";
+import { Plus, Target, Trash2, TrendingUp, AlertTriangle, Pencil, X } from "lucide-react";
 import Link from "next/link";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
+import { useSettings } from "@/contexts/SettingsContext";
 
 interface SavingsPlan {
   _id: string;
@@ -30,11 +31,29 @@ const EMPTY_FORM = {
 };
 
 export default function SavingsPage() {
+  const { fmt } = useSettings();
   const [plans, setPlans] = useState<SavingsPlan[]>([]);
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set<string>();
+    try {
+      const stored = sessionStorage.getItem("platica_savings_alerts");
+      return stored ? new Set<string>(JSON.parse(stored)) : new Set<string>();
+    } catch { return new Set<string>(); }
+  });
   const [showForm, setShowForm] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<SavingsPlan | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Modal de aporte
+  const [contributionPlan, setContributionPlan] = useState<SavingsPlan | null>(null);
+  const [contributionAmount, setContributionAmount] = useState("");
+  const [contributionSubmitting, setContributionSubmitting] = useState(false);
+
+  // Modal de confirmación de eliminación
+  const [deletePlan, setDeletePlan] = useState<SavingsPlan | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
   const fetchPlans = useCallback(async () => {
     setLoading(true);
@@ -46,36 +65,94 @@ export default function SavingsPage() {
 
   useEffect(() => { fetchPlans(); }, [fetchPlans]);
 
+  function openCreate() {
+    setEditingPlan(null);
+    setForm(EMPTY_FORM);
+    setShowForm(true);
+  }
+
+  function openEdit(plan: SavingsPlan) {
+    setEditingPlan(plan);
+    setForm({
+      name: plan.name,
+      targetAmount: String(plan.targetAmount),
+      currentAmount: String(plan.currentAmount),
+      targetDate: plan.targetDate.slice(0, 10),
+      monthlyContribution: String(plan.monthlyContribution),
+      category: plan.category,
+      description: plan.description ?? "",
+    });
+    setShowForm(true);
+  }
+
+  function closeForm() {
+    setShowForm(false);
+    setEditingPlan(null);
+    setForm(EMPTY_FORM);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-    await fetch("/api/savings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    setForm(EMPTY_FORM);
-    setShowForm(false);
+
+    if (editingPlan) {
+      await fetch(`/api/savings/${editingPlan._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+    } else {
+      await fetch("/api/savings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+    }
+
+    closeForm();
     setSubmitting(false);
     fetchPlans();
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar este plan de ahorro?")) return;
-    await fetch(`/api/savings/${id}`, { method: "DELETE" });
+  async function confirmDelete() {
+    if (!deletePlan) return;
+    setDeleteSubmitting(true);
+    await fetch(`/api/savings/${deletePlan._id}`, { method: "DELETE" });
+    setDeletePlan(null);
+    setDeleteSubmitting(false);
     fetchPlans();
   }
 
-  async function addContribution(plan: SavingsPlan) {
-    const input = prompt(`¿Cuánto deseas agregar al plan "${plan.name}"?`);
-    if (!input) return;
-    const amount = parseFloat(input);
+  async function submitContribution(e: React.FormEvent) {
+    e.preventDefault();
+    if (!contributionPlan) return;
+    const amount = parseFloat(contributionAmount);
     if (isNaN(amount) || amount <= 0) return;
-    await fetch(`/api/savings/${plan._id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ currentAmount: plan.currentAmount + amount }),
-    });
+    setContributionSubmitting(true);
+
+    await Promise.all([
+      fetch(`/api/savings/${contributionPlan._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentAmount: contributionPlan.currentAmount + amount }),
+      }),
+      fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "expense",
+          amount,
+          category: "Ahorro",
+          description: `Aporte a "${contributionPlan.name}"`,
+          date: new Date().toISOString().slice(0, 10),
+          tags: ["ahorro"],
+        }),
+      }),
+    ]);
+
+    setContributionPlan(null);
+    setContributionAmount("");
+    setContributionSubmitting(false);
     fetchPlans();
   }
 
@@ -90,7 +167,7 @@ export default function SavingsPage() {
           <p className="text-gray-500 text-sm mt-1">{plans.length} planes activos</p>
         </div>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={openCreate}
           className="self-start sm:self-auto flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
         >
           <Plus className="w-4 h-4" />
@@ -98,16 +175,16 @@ export default function SavingsPage() {
         </button>
       </div>
 
-      {/* Summary */}
+      {/* Resumen */}
       {plans.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           <div className="bg-white rounded-2xl p-5 shadow-sm">
             <p className="text-sm text-gray-500 mb-1">Meta total</p>
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalTarget)}</p>
+            <p className="text-2xl font-bold text-gray-900">{fmt(totalTarget)}</p>
           </div>
           <div className="bg-white rounded-2xl p-5 shadow-sm">
             <p className="text-sm text-gray-500 mb-1">Total ahorrado</p>
-            <p className="text-2xl font-bold text-green-600">{formatCurrency(totalSaved)}</p>
+            <p className="text-2xl font-bold text-green-600">{fmt(totalSaved)}</p>
           </div>
           <div className="bg-white rounded-2xl p-5 shadow-sm">
             <p className="text-sm text-gray-500 mb-1">Progreso general</p>
@@ -118,11 +195,18 @@ export default function SavingsPage() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal crear / editar plan */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-lg font-semibold text-gray-900 mb-5">Nuevo plan de ahorro</h2>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-semibold text-gray-900">
+                {editingPlan ? "Editar plan de ahorro" : "Nuevo plan de ahorro"}
+              </h2>
+              <button onClick={closeForm} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del plan</label>
@@ -200,7 +284,9 @@ export default function SavingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción <span className="text-gray-400">(opcional)</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Descripción <span className="text-gray-400">(opcional)</span>
+                </label>
                 <textarea
                   rows={2}
                   value={form.description}
@@ -213,7 +299,7 @@ export default function SavingsPage() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={closeForm}
                   className="flex-1 py-2.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 font-medium"
                 >
                   Cancelar
@@ -223,7 +309,7 @@ export default function SavingsPage() {
                   disabled={submitting}
                   className="flex-1 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:opacity-50"
                 >
-                  {submitting ? "Guardando..." : "Crear plan"}
+                  {submitting ? "Guardando..." : editingPlan ? "Guardar cambios" : "Crear plan"}
                 </button>
               </div>
             </form>
@@ -231,7 +317,89 @@ export default function SavingsPage() {
         </div>
       )}
 
-      {/* Plans grid */}
+      {/* Modal registrar aporte */}
+      {contributionPlan && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Registrar aporte</h2>
+              <button
+                onClick={() => { setContributionPlan(null); setContributionAmount(""); }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              Plan: <span className="font-medium text-gray-700">{contributionPlan.name}</span>
+            </p>
+            <form onSubmit={submitContribution} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Monto a agregar</label>
+                <input
+                  type="number"
+                  required
+                  min="0.01"
+                  step="0.01"
+                  autoFocus
+                  value={contributionAmount}
+                  onChange={(e) => setContributionAmount(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setContributionPlan(null); setContributionAmount(""); }}
+                  className="flex-1 py-2.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={contributionSubmitting}
+                  className="flex-1 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:opacity-50"
+                >
+                  {contributionSubmitting ? "Guardando..." : "Agregar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal confirmar eliminación */}
+      {deletePlan && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Eliminar plan</h2>
+            <p className="text-sm text-gray-500 mb-6">
+              ¿Seguro que quieres eliminar{" "}
+              <span className="font-medium text-gray-700">&quot;{deletePlan.name}&quot;</span>?
+              Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeletePlan(null)}
+                disabled={deleteSubmitting}
+                className="flex-1 py-2.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 font-medium disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleteSubmitting}
+                className="flex-1 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:opacity-50"
+              >
+                {deleteSubmitting ? "Eliminando..." : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Grilla de planes */}
       {loading ? (
         <div className="text-center py-12 text-gray-400">Cargando planes...</div>
       ) : plans.length === 0 ? (
@@ -261,17 +429,27 @@ export default function SavingsPage() {
             return (
               <div key={plan._id} className="bg-white rounded-2xl p-5 shadow-sm">
                 <div className="flex items-start justify-between mb-4">
-                  <div>
+                  <div className="flex-1 min-w-0 pr-2">
                     <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full font-medium">{plan.category}</span>
-                    <h3 className="font-semibold text-gray-900 mt-2">{plan.name}</h3>
-                    {plan.description && <p className="text-xs text-gray-400 mt-0.5">{plan.description}</p>}
+                    <h3 className="font-semibold text-gray-900 mt-2 truncate">{plan.name}</h3>
+                    {plan.description && <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{plan.description}</p>}
                   </div>
-                  <button
-                    onClick={() => handleDelete(plan._id)}
-                    className="text-gray-300 hover:text-red-500 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => openEdit(plan)}
+                      className="text-gray-300 hover:text-blue-500 transition-colors p-1"
+                      title="Editar plan"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setDeletePlan(plan)}
+                      className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                      title="Eliminar plan"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mb-4">
@@ -286,19 +464,19 @@ export default function SavingsPage() {
                     />
                   </div>
                   <div className="flex justify-between text-xs text-gray-400 mt-1">
-                    <span>{formatCurrency(plan.currentAmount)}</span>
-                    <span>{formatCurrency(plan.targetAmount)}</span>
+                    <span>{fmt(plan.currentAmount)}</span>
+                    <span>{fmt(plan.targetAmount)}</span>
                   </div>
                 </div>
 
                 <div className="space-y-1.5 text-sm text-gray-500 mb-4">
                   <div className="flex justify-between">
                     <span>Faltan</span>
-                    <span className="font-medium text-gray-700">{formatCurrency(remaining)}</span>
+                    <span className="font-medium text-gray-700">{fmt(remaining)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Aporte mensual</span>
-                    <span className="font-medium text-gray-700">{formatCurrency(plan.monthlyContribution)}</span>
+                    <span className="font-medium text-gray-700">{fmt(plan.monthlyContribution)}</span>
                   </div>
                   {monthsLeft !== null && (
                     <div className="flex justify-between">
@@ -312,11 +490,11 @@ export default function SavingsPage() {
                   </div>
                 </div>
 
-                {isOffTrack && idealMonthly && (
+                {isOffTrack && idealMonthly && !dismissedAlerts.has(plan._id) && (
                   <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
                     <div className="flex items-start gap-2">
                       <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                      <div className="text-xs text-amber-800 space-y-1">
+                      <div className="text-xs text-amber-800 space-y-1 flex-1">
                         <p>
                           Con tu aporte actual llegarás a la meta en{" "}
                           <strong>{monthsLeft} meses</strong>, pero tu fecha objetivo
@@ -324,7 +502,7 @@ export default function SavingsPage() {
                         </p>
                         <p>
                           Para llegar a tiempo necesitas ahorrar{" "}
-                          <strong>{formatCurrency(idealMonthly)}/mes</strong>.
+                          <strong>{fmt(idealMonthly)}/mes</strong>.
                         </p>
                         <Link
                           href="/insights"
@@ -333,12 +511,23 @@ export default function SavingsPage() {
                           Ver consejos de ahorro →
                         </Link>
                       </div>
+                      <button
+                        onClick={() => {
+                          const next = new Set([...dismissedAlerts, plan._id]);
+                          setDismissedAlerts(next);
+                          sessionStorage.setItem("platica_savings_alerts", JSON.stringify([...next]));
+                        }}
+                        className="text-amber-400 hover:text-amber-700 transition-colors shrink-0"
+                        aria-label="Cerrar alerta"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 )}
 
                 <button
-                  onClick={() => addContribution(plan)}
+                  onClick={() => { setContributionPlan(plan); setContributionAmount(""); }}
                   className="w-full flex items-center justify-center gap-2 py-2 border border-green-200 text-green-700 rounded-lg hover:bg-green-50 transition-colors text-sm font-medium"
                 >
                   <TrendingUp className="w-4 h-4" />

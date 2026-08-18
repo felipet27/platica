@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { name, targetAmount, targetDate, monthlyContribution, category, description } = body;
+  const { name, targetAmount, currentAmount, targetDate, monthlyContribution, category, description } = body;
 
   if (!name || !targetAmount || !targetDate || !monthlyContribution || !category) {
     return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 });
@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
     userId: session.user.id,
     name,
     targetAmount: parseFloat(targetAmount),
+    currentAmount: currentAmount ? parseFloat(currentAmount) : 0,
     targetDate: new Date(targetDate),
     monthlyContribution: parseFloat(monthlyContribution),
     category,

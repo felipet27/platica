@@ -10,12 +10,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const { id } = await params;
-  const { name, targetAmount, currentAmount, targetDate, monthlyContribution, category, description, isActive } = await req.json();
+  const body = await req.json();
   await connectDB();
+
+  const updates: Record<string, unknown> = {};
+  if (body.name !== undefined)               updates.name = body.name;
+  if (body.category !== undefined)           updates.category = body.category;
+  if (body.description !== undefined)        updates.description = body.description;
+  if (body.isActive !== undefined)           updates.isActive = body.isActive;
+  if (body.targetDate !== undefined)         updates.targetDate = new Date(body.targetDate);
+  if (body.targetAmount !== undefined)       updates.targetAmount = parseFloat(String(body.targetAmount));
+  if (body.currentAmount !== undefined)      updates.currentAmount = parseFloat(String(body.currentAmount));
+  if (body.monthlyContribution !== undefined) updates.monthlyContribution = parseFloat(String(body.monthlyContribution));
 
   const plan = await SavingsPlan.findOneAndUpdate(
     { _id: id, userId: session.user.id },
-    { name, targetAmount, currentAmount, targetDate, monthlyContribution, category, description, isActive },
+    { $set: updates },
     { new: true }
   );
 

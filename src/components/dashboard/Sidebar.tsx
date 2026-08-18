@@ -12,6 +12,7 @@ import {
   User,
   Repeat2,
   X,
+  Settings,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { href: "/transactions", icon: ArrowLeftRight, label: "Transacciones" },
   { href: "/savings", icon: PiggyBank, label: "Ahorros" },
   { href: "/insights", icon: Lightbulb, label: "Consejos" },
+  { href: "/settings", icon: Settings, label: "Configuración" },
 ];
 
 interface SidebarProps {
@@ -38,8 +40,7 @@ export default function Sidebar({ user, open, onClose }: SidebarProps) {
       }`}
     >
       <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-        <span className="text-2xl font-bold text-green-700">Plática</span>
-        {/* Botón cerrar — solo móvil */}
+        <span className="text-2xl font-bold text-green-700">platíca</span>
         <button
           onClick={onClose}
           className="md:hidden p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"

@@ -33,7 +33,8 @@ import {
   Cell,
   Legend,
 } from "recharts";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
+import { useSettings } from "@/contexts/SettingsContext";
 
 const PIE_COLORS = ["#22c55e", "#f59e0b", "#3b82f6", "#ef4444", "#8b5cf6"];
 
@@ -197,7 +198,7 @@ function OnboardingChecklist({
           </div>
           <div>
             <p className="text-sm font-semibold text-green-900">
-              {allDone ? "¡Todo listo! 🎉" : "Primeros pasos en Plática"}
+              {allDone ? "¡Todo listo! 🎉" : "Primeros pasos en platíca"}
             </p>
             <p className="text-xs text-green-700">
               {completedCount} de {steps.length} completados
@@ -277,6 +278,7 @@ export default function DashboardClient({
     incomeByCategory,
   } = data;
 
+  const { fmt } = useSettings();
   const router = useRouter();
   const [tip, setTip] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -292,6 +294,7 @@ export default function DashboardClient({
   }, []);
 
   useEffect(() => {
+    if (sessionStorage.getItem("platica_tip_dismissed")) return;
     fetch("/api/insights")
       .then((r) => r.json())
       .then((d) => {
@@ -396,14 +399,21 @@ export default function DashboardClient({
 
       {/* Consejo rápido */}
       {tip && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <Lightbulb className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-sm text-amber-800">{tip}</p>
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-4">
+          <Lightbulb className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+          <p className="text-sm text-amber-800 flex-1">{tip}</p>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link href="/insights" className="flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-900 whitespace-nowrap">
+              Ver todos <ArrowRight className="w-3 h-3" />
+            </Link>
+            <button
+              onClick={() => { setTip(null); sessionStorage.setItem("platica_tip_dismissed", "true"); }}
+              className="text-amber-400 hover:text-amber-700 transition-colors"
+              aria-label="Cerrar consejo"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-          <Link href="/insights" className="flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-900 whitespace-nowrap">
-            Ver todos <ArrowRight className="w-3 h-3" />
-          </Link>
         </div>
       )}
 
@@ -416,7 +426,7 @@ export default function DashboardClient({
               <InfoTooltip text="Diferencia entre tus ingresos y gastos de este mes. En verde si ganas más de lo que gastas, en rojo si hay déficit." />
             </div>
             <p className={`text-5xl font-bold tracking-tight ${currentMonth.balance >= 0 ? "text-gray-900" : "text-red-500"}`}>
-              {formatCurrency(currentMonth.balance)}
+              {fmt(currentMonth.balance)}
             </p>
           </div>
           {hasData && (
@@ -430,10 +440,10 @@ export default function DashboardClient({
           <div className="space-y-3">
             <div className="flex justify-between text-sm font-medium">
               <span className="flex items-center gap-1.5 text-green-600">
-                <TrendingUp className="w-4 h-4" /> {formatCurrency(currentMonth.income)}
+                <TrendingUp className="w-4 h-4" /> {fmt(currentMonth.income)}
               </span>
               <span className="flex items-center gap-1.5 text-red-500">
-                <TrendingDown className="w-4 h-4" /> {formatCurrency(currentMonth.expense)}
+                <TrendingDown className="w-4 h-4" /> {fmt(currentMonth.expense)}
               </span>
             </div>
             <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
@@ -442,7 +452,7 @@ export default function DashboardClient({
             <p className="text-xs text-gray-400">
               {spentPercent <= 100
                 ? `Llevas gastado el ${spentPercent}% de tus ingresos este mes`
-                : `Tus gastos superaron los ingresos en ${formatCurrency(currentMonth.expense - currentMonth.income)}`}
+                : `Tus gastos superaron los ingresos en ${fmt(currentMonth.expense - currentMonth.income)}`}
             </p>
           </div>
         ) : (
@@ -500,11 +510,11 @@ export default function DashboardClient({
             </div>
           </div>
           <p className={`text-3xl font-bold ${libreEstimado >= 0 ? "text-gray-900" : "text-red-500"}`}>
-            {formatCurrency(libreEstimado)}
+            {fmt(libreEstimado)}
           </p>
           <p className="text-xs text-gray-400">
             {totalExpenseCommitments > 0
-              ? `Ingresos − compromisos (${formatCurrency(totalExpenseCommitments)})`
+              ? `Ingresos − compromisos (${fmt(totalExpenseCommitments)})`
               : "Configura compromisos para ver este cálculo"}
           </p>
         </div>
@@ -552,7 +562,7 @@ export default function DashboardClient({
                       <div className="flex items-center gap-3 shrink-0 ml-4">
                         <div className="text-right">
                           <p className={`text-sm font-semibold ${c.paid ? "text-green-600" : "text-gray-600"}`}>
-                            {formatCurrency(c.amount)}
+                            {fmt(c.amount)}
                           </p>
                           <p className={`text-xs ${c.paid ? "text-green-500" : "text-amber-500"}`}>
                             {c.paid ? "Cubierto" : "Pendiente"}
@@ -586,7 +596,7 @@ export default function DashboardClient({
                         <p className="text-sm font-medium text-gray-800">{c.name}</p>
                       </div>
                       <div className="flex items-center gap-3">
-                        <p className="text-sm font-semibold text-green-600">{formatCurrency(c.amount)}</p>
+                        <p className="text-sm font-semibold text-green-600">{fmt(c.amount)}</p>
                         {!c.paid && (
                           <button
                             onClick={() => payCommitment(c)}
@@ -607,18 +617,18 @@ export default function DashboardClient({
                 <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
                   <div>
                     <p className="text-xs text-gray-400">Comprometido</p>
-                    <p className="text-sm font-bold text-gray-800 mt-0.5">{formatCurrency(totalExpenseCommitments)}</p>
+                    <p className="text-sm font-bold text-gray-800 mt-0.5">{fmt(totalExpenseCommitments)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-400">Cubierto</p>
                     <p className="text-sm font-bold text-green-600 mt-0.5">
-                      {formatCurrency(expenseCommitments.filter((c) => c.paid).reduce((s, c) => s + c.amount, 0))}
+                      {fmt(expenseCommitments.filter((c) => c.paid).reduce((s, c) => s + c.amount, 0))}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-400">Libre estimado</p>
                     <p className={`text-sm font-bold mt-0.5 ${libreEstimado >= 0 ? "text-blue-600" : "text-red-500"}`}>
-                      {formatCurrency(libreEstimado)}
+                      {fmt(libreEstimado)}
                     </p>
                   </div>
                 </div>
@@ -654,13 +664,13 @@ export default function DashboardClient({
                     <div className="w-full bg-gray-100 rounded-full h-2">
                       <div className="h-2 rounded-full" style={{ width: `${pct}%`, backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">{formatCurrency(item.total)}</p>
+                    <p className="text-xs text-gray-500 mt-1">{fmt(item.total)}</p>
                   </div>
                 );
               })}
               <div className="border-t border-gray-100 pt-3 flex justify-between items-center">
                 <span className="text-sm font-semibold text-gray-700">Total</span>
-                <span className="text-sm font-bold text-green-600">{formatCurrency(currentMonth.income)}</span>
+                <span className="text-sm font-bold text-green-600">{fmt(currentMonth.income)}</span>
               </div>
             </div>
           )}
@@ -700,7 +710,7 @@ export default function DashboardClient({
                   </div>
                 </div>
                 <span className={`text-sm font-semibold shrink-0 ml-4 ${t.type === "income" ? "text-green-600" : "text-red-500"}`}>
-                  {t.type === "income" ? "+" : "-"}{formatCurrency(t.amount)}
+                  {t.type === "income" ? "+" : "-"}{fmt(t.amount)}
                 </span>
               </li>
             ))}
@@ -728,7 +738,7 @@ export default function DashboardClient({
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
               <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
-              <Tooltip formatter={(v) => formatCurrency(Number(v))} contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }} />
+              <Tooltip formatter={(v) => fmt(Number(v))} contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }} />
               <Bar dataKey="income" name="Ingresos" fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={32} />
               <Bar dataKey="expense" name="Gastos" fill="#f87171" radius={[4, 4, 0, 0]} maxBarSize={32} />
             </BarChart>
@@ -747,7 +757,7 @@ export default function DashboardClient({
                   {categoryBreakdown.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                 </Pie>
                 <Legend iconSize={9} wrapperStyle={{ fontSize: 11 }} />
-                <Tooltip formatter={(v) => formatCurrency(Number(v))} contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }} />
+                <Tooltip formatter={(v) => fmt(Number(v))} contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -780,9 +790,9 @@ export default function DashboardClient({
                     <div className="bg-green-500 h-2 rounded-full transition-all" style={{ width: `${progress}%` }} />
                   </div>
                   <div className="flex justify-between text-xs text-gray-400">
-                    <span>{formatCurrency(plan.currentAmount)}</span>
+                    <span>{fmt(plan.currentAmount)}</span>
                     <span>{progress.toFixed(0)}%</span>
-                    <span>{formatCurrency(plan.targetAmount)}</span>
+                    <span>{fmt(plan.targetAmount)}</span>
                   </div>
                 </div>
               );

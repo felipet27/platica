@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
+import Commitment from "@/models/Commitment";
 import { WATCH_CATEGORIES } from "@/lib/categories";
 import { startOfMonth, endOfMonth, subMonths, differenceInDays } from "date-fns";
+import mongoose from "mongoose";
 
 export async function GET() {
   const session = await auth();
@@ -12,11 +14,12 @@ export async function GET() {
   }
 
   await connectDB();
-  const userId = session.user.id;
+  // Aggregate pipelines no castean automáticamente strings a ObjectId — convertir explícitamente
+  const userId = new mongoose.Types.ObjectId(session.user.id);
   const now = new Date();
 
   // Datos del mes actual y los 3 meses anteriores
-  const [incomeAgg, expenseByCategory, allTransactions, prevMonthsExpense] = await Promise.all([
+  const [incomeAgg, expenseByCategory, allTransactions, prevMonthsExpense, incomeCommitmentsCount] = await Promise.all([
     Transaction.aggregate([
       { $match: { userId, type: "income", date: { $gte: startOfMonth(now), $lte: endOfMonth(now) } } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
@@ -41,12 +44,20 @@ export async function GET() {
       },
       { $group: { _id: "$category", total: { $sum: "$amount" } } },
     ]),
+    Commitment.countDocuments({ userId, type: "income", isActive: true }),
   ]);
 
   const monthlyIncome = incomeAgg[0]?.total ?? 0;
   const totalExpense = expenseByCategory.reduce((s: number, c: { total: number }) => s + c.total, 0);
   const balance = monthlyIncome - totalExpense;
-  const savingsRate = monthlyIncome > 0 ? (balance / monthlyIncome) * 100 : 0;
+
+  // Los aportes a planes de ahorro se registran como gasto categoría "Ahorro".
+  // No son consumo, así que se suman al balance para calcular la tasa real.
+  const savingsContributions = (expenseByCategory as { _id: string; total: number }[])
+    .find((c) => c._id === "Ahorro")?.total ?? 0;
+  const savingsRate = monthlyIncome > 0
+    ? ((balance + savingsContributions) / monthlyIncome) * 100
+    : 0;
 
   // Mapa de gasto promedio de meses anteriores por categoría
   const prevAvgMap: Record<string, number> = {};
@@ -110,16 +121,20 @@ export async function GET() {
   // Recomendaciones de ahorro
   const savingsTips: string[] = [];
 
-  if (savingsRate < 10) {
-    savingsTips.push("Tu tasa de ahorro es menor al 10%. Lo ideal es ahorrar mínimo el 20% de tus ingresos.");
+  if (monthlyIncome === 0) {
+    if (incomeCommitmentsCount > 0) {
+      savingsTips.push("Tienes ingresos fijos configurados pero aún no has registrado ninguno como transacción este mes. Regístralos cuando los recibas para ver el análisis.");
+    } else {
+      savingsTips.push("No tienes ingresos registrados este mes. Agrégalos desde el Dashboard para ver tu tasa de ahorro y análisis financiero.");
+    }
+  } else if (balance < 0) {
+    savingsTips.push(`Este mes estás en déficit: tus gastos superan tus ingresos en $${Math.abs(balance).toLocaleString("es-CO")}. Identifica los 2 gastos más altos y redúcelos.`);
+  } else if (savingsRate < 10) {
+    savingsTips.push(`Tu tasa de ahorro este mes es del ${savingsRate.toFixed(1)}%. Lo ideal es ahorrar al menos el 20% de tus ingresos.`);
   } else if (savingsRate < 20) {
-    savingsTips.push("Vas bien, pero puedes mejorar. Intenta llegar al 20% de ahorro mensual.");
+    savingsTips.push(`Vas bien — ahorras el ${savingsRate.toFixed(1)}% de tus ingresos este mes. Intenta llegar al 20%.`);
   } else {
-    savingsTips.push("Excelente tasa de ahorro. Considera invertir el excedente en fondos de bajo riesgo.");
-  }
-
-  if (balance < 0) {
-    savingsTips.push("Estás gastando más de lo que ingresas. Identifica los 2 gastos más altos y redúcelos esta semana.");
+    savingsTips.push(`Excelente — ahorras el ${savingsRate.toFixed(1)}% de tus ingresos. Considera invertir el excedente en fondos de bajo riesgo.`);
   }
 
   const daysInMonth = differenceInDays(endOfMonth(now), startOfMonth(now)) + 1;
@@ -152,6 +167,8 @@ export async function GET() {
       balance,
       savingsRate,
       projectedExpense,
+      savingsContributions,
+      hasIncomeCommitments: incomeCommitmentsCount > 0,
     },
     alerts: alerts.sort((a, b) => (b.severity === "high" ? 1 : -1)),
     hormigaAlert,

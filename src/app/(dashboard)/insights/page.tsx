@@ -21,8 +21,10 @@ import {
   TrendingUp,
   Clock,
   ShieldCheck,
+  X,
+  Info,
 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { useSettings } from "@/contexts/SettingsContext";
 
 interface Alert {
   category: string;
@@ -41,6 +43,8 @@ interface InsightsData {
     balance: number;
     savingsRate: number;
     projectedExpense: number;
+    savingsContributions: number;
+    hasIncomeCommitments: boolean;
   };
   alerts: Alert[];
   hormigaAlert: { label: string; amount: number; count: number; percent: number; tip: string; severity: "high" | "medium" } | null;
@@ -76,8 +80,26 @@ const SEVERITY_ICON_STYLES = {
 };
 
 export default function InsightsPage() {
+  const { fmt } = useSettings();
   const [data, setData] = useState<InsightsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showNoIncome, setShowNoIncome] = useState<boolean>(() =>
+    typeof window === "undefined" ? true : sessionStorage.getItem("platica_insights_no_income") !== "true"
+  );
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set<string>();
+    try {
+      const stored = sessionStorage.getItem("platica_insights_alerts");
+      return stored ? new Set<string>(JSON.parse(stored)) : new Set<string>();
+    } catch { return new Set<string>(); }
+  });
+  const [dismissedTips, setDismissedTips] = useState<Set<number>>(() => {
+    if (typeof window === "undefined") return new Set<number>();
+    try {
+      const stored = sessionStorage.getItem("platica_insights_tips");
+      return stored ? new Set<number>(JSON.parse(stored)) : new Set<number>();
+    } catch { return new Set<number>(); }
+  });
 
   useEffect(() => {
     fetch("/api/insights")
@@ -117,13 +139,24 @@ export default function InsightsPage() {
         <p className="text-gray-500 mt-1">Análisis de tus hábitos con recomendaciones para mejorar</p>
       </div>
 
-      {!hasIncome && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex gap-3">
+      {!hasIncome && showNoIncome && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-          <p className="text-amber-800 text-sm">
-            Aún no tienes ingresos registrados este mes. Regístralos desde el{" "}
-            <Link href="/dashboard" className="underline font-medium">Dashboard</Link> para recibir análisis precisos.
+          <p className="text-amber-800 text-sm flex-1">
+            {summary.hasIncomeCommitments
+              ? <>Tienes ingresos fijos configurados pero aún no los has registrado como transacciones este mes. Regístralos desde el{" "}
+                  <Link href="/dashboard" className="underline font-medium">Dashboard</Link> cuando los recibas.</>
+              : <>No tienes ingresos registrados este mes. Agrégalos desde el{" "}
+                  <Link href="/dashboard" className="underline font-medium">Dashboard</Link> para ver el análisis completo.</>
+            }
           </p>
+          <button
+            onClick={() => { setShowNoIncome(false); sessionStorage.setItem("platica_insights_no_income", "true"); }}
+            className="text-amber-400 hover:text-amber-700 transition-colors shrink-0"
+            aria-label="Cerrar aviso"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
@@ -134,31 +167,61 @@ export default function InsightsPage() {
             <div className="flex items-center gap-2 mb-1">
               <PiggyBank className="w-5 h-5 text-green-600" />
               <h2 className="font-semibold text-gray-900">Tu tasa de ahorro este mes</h2>
+              <InfoTooltip text="Mide qué porcentaje de tus ingresos no se fue en consumo. Fórmula: (Ingresos − Gastos de consumo) ÷ Ingresos. Los aportes a planes de ahorro no cuentan como consumo — suben la tasa. Meta recomendada: 20%." />
             </div>
-            <p className="text-xs text-gray-400">Porcentaje de tus ingresos que no gastaste</p>
+            <p className="text-xs text-gray-400">(Ingresos − Gastos de consumo) ÷ Ingresos · Meta: 20%</p>
           </div>
-          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${savingsRate >= 20 ? "bg-green-100 text-green-700" : savingsRate >= 10 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-600"}`}>
-            {savingsRate >= 20 ? "Meta alcanzada" : "Por mejorar"}
-          </span>
+          {hasIncome && (
+            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${savingsRate >= 20 ? "bg-green-100 text-green-700" : savingsRate >= 10 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-600"}`}>
+              {savingsRate >= 20 ? "Meta alcanzada" : "Por mejorar"}
+            </span>
+          )}
         </div>
-        <div className="flex items-end gap-4 mb-4">
-          <p className={`text-5xl font-bold ${savingsColor}`}>{savingsRate.toFixed(1)}%</p>
-          <div className="pb-1 text-sm text-gray-400">
-            <p>Ingresos: <span className="font-medium text-gray-700">{formatCurrency(summary.monthlyIncome)}</span></p>
-            <p>Gastos: <span className="font-medium text-gray-700">{formatCurrency(summary.totalExpense)}</span></p>
+
+        {!hasIncome ? (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-400">Aún no hay ingresos registrados este mes — no es posible calcular la tasa.</p>
+            <div className="bg-gray-50 rounded-xl p-4">
+              <p className="text-sm font-semibold text-gray-700 mb-3">¿Cuándo empieza a cambiar este número?</p>
+              <ol className="space-y-2.5">
+                {[
+                  { n: 1, text: "Registra tus ingresos del mes como transacciones en el Dashboard. Si tienes un salario fijo, también regístralo ahí cuando lo recibas." },
+                  { n: 2, text: "Controla tus gastos de consumo: mientras menos gastes en consumo, más alta la tasa." },
+                  { n: 3, text: "Aporta a tus planes de ahorro: cada aporte registrado sube automáticamente la tasa." },
+                ].map(({ n, text }) => (
+                  <li key={n} className="flex items-start gap-3 text-sm text-gray-600">
+                    <span className="w-5 h-5 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">{n}</span>
+                    {text}
+                  </li>
+                ))}
+              </ol>
+            </div>
           </div>
-        </div>
-        <div className="w-full bg-gray-100 rounded-full h-3 mb-3 relative">
-          <div className={`h-3 rounded-full transition-all ${savingsBg}`} style={{ width: `${Math.min(savingsRate, 100)}%` }} />
-          <div className="absolute top-0 h-3 w-0.5 bg-gray-400" style={{ left: "20%" }} title="Meta 20%" />
-        </div>
-        <p className={`text-sm font-medium ${savingsColor}`}>{savingsLabel}</p>
-        {savingsRate < 20 && hasIncome && (
-          <p className="text-xs text-gray-400 mt-1">
-            Para llegar al 20% deberías gastar máximo{" "}
-            <strong>{formatCurrency(summary.monthlyIncome * 0.8)}</strong> este mes.
-            Actualmente llevas <strong>{formatCurrency(summary.totalExpense)}</strong>.
-          </p>
+        ) : (
+          <>
+            <div className="flex items-end gap-4 mb-4">
+              <p className={`text-5xl font-bold ${savingsColor}`}>{savingsRate.toFixed(1)}%</p>
+              <div className="pb-1 text-sm text-gray-400 space-y-0.5">
+                <p>Ingresos: <span className="font-medium text-gray-700">{fmt(summary.monthlyIncome)}</span></p>
+                <p>Gastos: <span className="font-medium text-gray-700">{fmt(summary.totalExpense - summary.savingsContributions)}</span></p>
+                {summary.savingsContributions > 0 && (
+                  <p>Aportes a planes: <span className="font-medium text-green-600">+{fmt(summary.savingsContributions)}</span></p>
+                )}
+              </div>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-3 mb-3 relative">
+              <div className={`h-3 rounded-full transition-all ${savingsBg}`} style={{ width: `${Math.min(savingsRate, 100)}%` }} />
+              <div className="absolute top-0 h-3 w-0.5 bg-gray-400" style={{ left: "20%" }} title="Meta 20%" />
+            </div>
+            <p className={`text-sm font-medium ${savingsColor}`}>{savingsLabel}</p>
+            {savingsRate < 20 && (
+              <p className="text-xs text-gray-400 mt-1">
+                Para llegar al 20% deberías gastar máximo{" "}
+                <strong>{fmt(summary.monthlyIncome * 0.8)}</strong> en consumo este mes.
+                Llevas <strong>{fmt(summary.totalExpense - summary.savingsContributions)}</strong>.
+              </p>
+            )}
+          </>
         )}
       </div>
 
@@ -203,7 +266,7 @@ export default function InsightsPage() {
             Categorías a revisar este mes
           </h2>
           <div className="space-y-3">
-            {hormigaAlert && (
+            {hormigaAlert && !dismissedAlerts.has("hormiga") && (
               <AlertCard
                 icon={Coffee}
                 label={hormigaAlert.label}
@@ -212,9 +275,14 @@ export default function InsightsPage() {
                 tip={hormigaAlert.tip}
                 severity={hormigaAlert.severity}
                 extra={`${hormigaAlert.count} transacciones pequeñas`}
+                onDismiss={() => {
+                  const next = new Set([...dismissedAlerts, "hormiga"]);
+                  setDismissedAlerts(next);
+                  sessionStorage.setItem("platica_insights_alerts", JSON.stringify([...next]));
+                }}
               />
             )}
-            {alerts.map((a) => {
+            {alerts.filter((a) => !dismissedAlerts.has(a.category)).map((a) => {
               const Icon = CATEGORY_ICONS[a.category] ?? TrendingDown;
               return (
                 <AlertCard
@@ -225,7 +293,12 @@ export default function InsightsPage() {
                   percent={a.percent}
                   tip={a.tip}
                   severity={a.severity}
-                  extra={a.prevAvg > 0 ? `Promedio anterior: ${formatCurrency(a.prevAvg)}` : undefined}
+                  extra={a.prevAvg > 0 ? `Promedio anterior: ${fmt(a.prevAvg)}` : undefined}
+                  onDismiss={() => {
+                    const next = new Set([...dismissedAlerts, a.category]);
+                    setDismissedAlerts(next);
+                    sessionStorage.setItem("platica_insights_alerts", JSON.stringify([...next]));
+                  }}
                 />
               );
             })}
@@ -246,7 +319,7 @@ export default function InsightsPage() {
                 <div className="flex justify-between text-sm mb-1">
                   <span className="font-medium text-gray-700">{c.category}</span>
                   <span className="text-gray-500">
-                    {formatCurrency(c.amount)}{" "}
+                    {fmt(c.amount)}{" "}
                     <span className="text-gray-400">({c.percent.toFixed(1)}% de ingresos)</span>
                   </span>
                 </div>
@@ -263,7 +336,7 @@ export default function InsightsPage() {
       )}
 
       {/* Recomendaciones personalizadas */}
-      {savingsTips.length > 0 && (
+      {savingsTips.filter((_, i) => !dismissedTips.has(i)).length > 0 && (
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Lightbulb className="w-5 h-5 text-amber-500" />
@@ -271,10 +344,21 @@ export default function InsightsPage() {
           </h2>
           <div className="bg-white rounded-2xl p-6 shadow-sm">
             <ul className="space-y-3">
-              {savingsTips.map((tip, i) => (
-                <li key={i} className="flex gap-3 text-sm text-gray-700">
+              {savingsTips.map((tip, i) => dismissedTips.has(i) ? null : (
+                <li key={i} className="flex items-start gap-3 text-sm text-gray-700">
                   <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                  {tip}
+                  <span className="flex-1">{tip}</span>
+                  <button
+                    onClick={() => {
+                      const next = new Set([...dismissedTips, i]);
+                      setDismissedTips(next);
+                      sessionStorage.setItem("platica_insights_tips", JSON.stringify([...next]));
+                    }}
+                    className="text-gray-300 hover:text-gray-500 transition-colors shrink-0"
+                    aria-label="Cerrar recomendación"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </li>
               ))}
             </ul>
@@ -336,10 +420,34 @@ function TipCard({ icon: Icon, title, desc, color }: { icon: React.ElementType; 
   );
 }
 
-function AlertCard({ icon: Icon, label, amount, percent, tip, severity, extra }: {
+function InfoTooltip({ text }: { text: string }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="relative inline-flex">
+      <button
+        onMouseEnter={() => setVisible(true)}
+        onMouseLeave={() => setVisible(false)}
+        onClick={() => setVisible((v) => !v)}
+        className="p-1 text-gray-300 hover:text-gray-500 transition-colors rounded"
+        type="button"
+      >
+        <Info className="w-4 h-4" />
+      </button>
+      {visible && (
+        <div className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 bg-gray-900 text-white text-xs rounded-xl p-3 shadow-xl leading-relaxed">
+          {text}
+          <div className="absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-gray-900" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AlertCard({ icon: Icon, label, amount, percent, tip, severity, extra, onDismiss }: {
   icon: React.ElementType; label: string; amount: number; percent: number;
-  tip: string; severity: "high" | "medium" | "low"; extra?: string;
+  tip: string; severity: "high" | "medium" | "low"; extra?: string; onDismiss?: () => void;
 }) {
+  const { fmt } = useSettings();
   return (
     <div className={`rounded-2xl border p-5 ${SEVERITY_STYLES[severity]}`}>
       <div className="flex items-start gap-4">
@@ -347,11 +455,18 @@ function AlertCard({ icon: Icon, label, amount, percent, tip, severity, extra }:
           <Icon className="w-5 h-5" />
         </div>
         <div className="flex-1">
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center justify-between mb-1 gap-2">
             <span className="font-semibold text-gray-900">{label}</span>
-            <span className="text-sm font-bold text-gray-700">
-              {formatCurrency(amount)} <span className="font-normal text-gray-400">({percent.toFixed(1)}%)</span>
-            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-sm font-bold text-gray-700">
+                {fmt(amount)} <span className="font-normal text-gray-400">({percent.toFixed(1)}%)</span>
+              </span>
+              {onDismiss && (
+                <button onClick={onDismiss} className="text-gray-300 hover:text-gray-500 transition-colors" aria-label="Cerrar alerta">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
           {extra && <p className="text-xs text-gray-500 mb-2">{extra}</p>}
           <p className="text-sm text-gray-600">{tip}</p>
