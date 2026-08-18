@@ -26,7 +26,10 @@ export const authConfig: NextAuthConfig = {
         pathname === "/" ||
         pathname === "/login" ||
         pathname === "/register" ||
-        pathname.startsWith("/api/auth");
+        pathname.startsWith("/api/auth") ||
+        pathname === "/manifest.webmanifest" ||
+        pathname.startsWith("/api/icons/") ||
+        pathname === "/sw.js";
 
       if (!isLoggedIn && !isPublic) {
         return Response.redirect(new URL("/login", nextUrl));
