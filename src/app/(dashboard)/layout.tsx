@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import DashboardShell from "@/components/dashboard/DashboardShell";
+import { InstallBanner } from "@/components/InstallBanner";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -9,6 +10,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <DashboardShell user={{ name: session.user?.name ?? "", email: session.user?.email ?? "" }}>
       {children}
+      <InstallBanner />
     </DashboardShell>
   );
 }
