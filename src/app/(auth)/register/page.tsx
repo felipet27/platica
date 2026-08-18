@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, UserPlus } from "lucide-react";
+import { Eye, EyeOff, UserPlus, ArrowLeft } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -39,12 +39,24 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <span className="text-3xl font-bold text-green-700">Plática</span>
-          <p className="text-gray-500 mt-1">Crea tu cuenta gratis</p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-md">
+        {/* Volver a inicio */}
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-sm text-green-700 hover:text-green-900 font-medium mb-4 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Volver al inicio
+        </Link>
+
+        <div className="bg-white rounded-2xl shadow-lg p-8">
+          <div className="text-center mb-8">
+            <Link href="/" className="inline-block">
+              <span className="text-3xl font-bold text-green-700 hover:text-green-800 transition-colors">Plática</span>
+            </Link>
+            <p className="text-gray-500 mt-1">Crea tu cuenta gratis</p>
+          </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
@@ -119,12 +131,13 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        <p className="text-center text-gray-500 text-sm mt-6">
-          ¿Ya tienes cuenta?{" "}
-          <Link href="/login" className="text-green-600 font-medium hover:text-green-700">
-            Inicia sesión
-          </Link>
-        </p>
+          <p className="text-center text-gray-500 text-sm mt-6">
+            ¿Ya tienes cuenta?{" "}
+            <Link href="/login" className="text-green-600 font-medium hover:text-green-700">
+              Inicia sesión
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
