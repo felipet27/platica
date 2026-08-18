@@ -17,7 +17,7 @@ export default function LandingPage() {
 
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
-        <span className="text-2xl font-bold text-green-700">platíca</span>
+        <span className="text-2xl font-bold text-green-700">Platíca</span>
         <div className="flex gap-3">
           <Link
             href="/login"
@@ -81,7 +81,7 @@ export default function LandingPage() {
           <div className="flex" style={{ height: "280px" }}>
             {/* Sidebar */}
             <div className="w-36 bg-white border-r border-gray-100 p-3 shrink-0 hidden sm:block">
-              <p className="text-sm font-bold text-green-700 mb-4 px-2">platíca</p>
+              <p className="text-sm font-bold text-green-700 mb-4 px-2">Platíca</p>
               {[
                 { label: "Dashboard", active: true },
                 { label: "Compromisos", active: false },
@@ -218,7 +218,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="text-center py-8 text-gray-400 text-sm border-t border-gray-200">
-        <p>© 2026 platíca · Gestión de finanzas personales</p>
+        <p>© 2026 Platíca · Gestión de finanzas personales</p>
         <p className="mt-1">
           <Link href="/login" className="hover:text-green-600 transition-colors">Iniciar sesión</Link>
           {" · "}

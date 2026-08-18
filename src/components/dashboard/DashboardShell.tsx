@@ -34,7 +34,7 @@ export default function DashboardShell({ children, user }: Props) {
             >
               <Menu className="w-5 h-5 text-gray-600" />
             </button>
-            <span className="text-lg font-bold text-green-700">platíca</span>
+            <span className="text-lg font-bold text-green-700">Platíca</span>
           </header>
 
           <main className="flex-1 p-4 md:p-8 overflow-y-auto">

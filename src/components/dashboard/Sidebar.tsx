@@ -40,7 +40,7 @@ export default function Sidebar({ user, open, onClose }: SidebarProps) {
       }`}
     >
       <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-        <span className="text-2xl font-bold text-green-700">platíca</span>
+        <span className="text-2xl font-bold text-green-700">Platíca</span>
         <button
           onClick={onClose}
           className="md:hidden p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"

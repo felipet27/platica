@@ -205,7 +205,7 @@ function OnboardingChecklist({
           </div>
           <div>
             <p className="text-sm font-semibold text-green-900">
-              {allDone ? "¡Todo listo! 🎉" : "Primeros pasos en platíca"}
+              {allDone ? "¡Todo listo! 🎉" : "Primeros pasos en Platíca"}
             </p>
             <p className="text-xs text-green-700">
               {completedCount} de {steps.length} completados

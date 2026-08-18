@@ -48,7 +48,7 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <div className="text-center mb-8">
             <Link href="/" className="inline-block">
-              <span className="text-3xl font-bold text-green-700 hover:text-green-800 transition-colors">platíca</span>
+              <span className="text-3xl font-bold text-green-700 hover:text-green-800 transition-colors">Platíca</span>
             </Link>
             <p className="text-gray-500 mt-1">Bienvenido de nuevo</p>
           </div>

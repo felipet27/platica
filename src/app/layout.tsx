@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "platíca - Finanzas Personales",
+  title: "Platíca - Finanzas Personales",
   description: "Gestiona tus ingresos y egresos, visualiza tus compromisos del mes y recibe consejos de ahorro personalizados.",
   icons: {
     icon: "/icon.svg",
