@@ -23,9 +23,13 @@ async function getDashboardData(userId: string) {
     label: startOfMonth(subMonths(now, 5 - i)).toISOString().slice(0, 7),
   }));
 
+  const prevMonthStart = startOfMonth(subMonths(now, 1));
+  const prevMonthEnd = endOfMonth(subMonths(now, 1));
+
   const [
     monthlySummaries,
     categoryBreakdown,
+    prevCategoryBreakdownAgg,
     recentTransactions,
     savingsPlans,
     activeCommitments,
@@ -58,6 +62,18 @@ async function getDashboardData(userId: string) {
           userId: userOid,
           type: "expense",
           date: { $gte: monthStart, $lte: monthEnd },
+        },
+      },
+      { $group: { _id: "$category", total: { $sum: "$amount" } } },
+      { $sort: { total: -1 } },
+      { $limit: 5 },
+    ]),
+    Transaction.aggregate([
+      {
+        $match: {
+          userId: userOid,
+          type: "expense",
+          date: { $gte: prevMonthStart, $lte: prevMonthEnd },
         },
       },
       { $group: { _id: "$category", total: { $sum: "$amount" } } },
@@ -104,11 +120,15 @@ async function getDashboardData(userId: string) {
     category: c.category,
     paid: paidIds.has(c._id.toString()),
     paidAmount: paidIds.get(c._id.toString()) ?? 0,
+    payDay: c.payDay ?? undefined,
+    totalInstallments: c.totalInstallments ?? undefined,
+    installmentsPaid: c.installmentsPaid ?? 0,
   }));
 
   return {
     monthlySummaries,
     categoryBreakdown: categoryBreakdown.map((c) => ({ name: c._id, value: c.total })),
+    prevCategoryBreakdown: prevCategoryBreakdownAgg.map((c) => ({ name: c._id, value: c.total })),
     recentTransactions: recentTransactions.map((t) => ({
       _id: t._id.toString(),
       type: t.type,

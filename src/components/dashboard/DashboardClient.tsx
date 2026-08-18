@@ -19,6 +19,9 @@ import {
   ChevronDown,
   ChevronUp,
   CreditCard,
+  Bell,
+  AlertCircle,
+  Trophy,
 } from "lucide-react";
 import {
   BarChart,
@@ -71,11 +74,15 @@ interface CommitmentItem {
   category: string;
   paid: boolean;
   paidAmount: number;
+  payDay?: number;
+  totalInstallments?: number;
+  installmentsPaid?: number;
 }
 
 interface DashboardData {
   monthlySummaries: { month: string; income: number; expense: number; balance: number }[];
   categoryBreakdown: { name: string; value: number }[];
+  prevCategoryBreakdown: { name: string; value: number }[];
   recentTransactions: {
     _id: string;
     type: string;
@@ -271,6 +278,7 @@ export default function DashboardClient({
   const {
     monthlySummaries,
     categoryBreakdown,
+    prevCategoryBreakdown,
     recentTransactions,
     savingsPlans,
     currentMonth,
@@ -326,6 +334,18 @@ export default function DashboardClient({
         commitmentId: c._id,
       }),
     });
+
+    if (c.totalInstallments) {
+      const newPaid = (c.installmentsPaid ?? 0) + 1;
+      const updateBody: Record<string, unknown> = { installmentsPaid: newPaid };
+      if (newPaid >= c.totalInstallments) updateBody.isActive = false;
+      await fetch(`/api/commitments/${c._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateBody),
+      });
+    }
+
     setPayingId(null);
     router.refresh();
   }
@@ -371,6 +391,56 @@ export default function DashboardClient({
   const hasIncome = monthlySummaries.some((m) => m.income > 0);
   const hasExpense = monthlySummaries.some((m) => m.expense > 0);
 
+  // ── Recordatorios de próximos pagos ────────────────────────────────────────
+  const todayDay = new Date().getDate();
+  const upcomingPayments = commitments
+    .filter((c) => c.type === "expense" && !c.paid && c.payDay != null)
+    .filter((c) => {
+      const diff = c.payDay! - todayDay;
+      return diff >= 0 && diff <= 7;
+    })
+    .sort((a, b) => (a.payDay ?? 0) - (b.payDay ?? 0));
+  const overduePayments = commitments
+    .filter((c) => c.type === "expense" && !c.paid && c.payDay != null && c.payDay < todayDay);
+
+  // ── Insights comparativos ──────────────────────────────────────────────────
+  interface Insight { positive: boolean; message: string }
+  const insights: Insight[] = [];
+
+  if (monthlySummaries.length >= 2) {
+    const prev = monthlySummaries[monthlySummaries.length - 2];
+    const curr = monthlySummaries[monthlySummaries.length - 1];
+    if (prev.expense > 0 && curr.expense > 0) {
+      const diffPct = Math.round(((curr.expense - prev.expense) / prev.expense) * 100);
+      if (Math.abs(diffPct) >= 5) {
+        if (diffPct < 0) {
+          insights.push({ positive: true, message: `¡Este mes llevas un ${Math.abs(diffPct)}% menos de gasto que el mes pasado! Sigue así.` });
+        } else {
+          insights.push({ positive: false, message: `Este mes llevas un ${diffPct}% más de gasto que el mes pasado. Revisa en qué categorías subió.` });
+        }
+      }
+    }
+  }
+
+  categoryBreakdown.forEach((curr) => {
+    const prev = prevCategoryBreakdown.find((p) => p.name === curr.name);
+    if (!prev || prev.value === 0) return;
+    const diffPct = Math.round(((curr.value - prev.value) / prev.value) * 100);
+    if (Math.abs(diffPct) < 10) return;
+    if (diffPct > 0) {
+      insights.push({ positive: false, message: `Gastaste ${diffPct}% más en ${curr.name} que el mes pasado (${fmt(curr.value)} vs ${fmt(prev.value)}).` });
+    } else {
+      insights.push({ positive: true, message: `¡Bajaste el gasto en ${curr.name} un ${Math.abs(diffPct)}% respecto al mes pasado! (${fmt(curr.value)} vs ${fmt(prev.value)}).` });
+    }
+  });
+
+  savingsPlans.forEach((plan) => {
+    if (plan.monthlyContribution > 0) {
+      const progress = Math.min(100, (plan.currentAmount / plan.targetAmount) * 100);
+      insights.push({ positive: true, message: `Recuerda aportar ${fmt(plan.monthlyContribution)}/mes a tu meta "${plan.name}" (${progress.toFixed(0)}% completada).` });
+    }
+  });
+
   return (
     <div className="space-y-6">
 
@@ -414,6 +484,43 @@ export default function DashboardClient({
               <X className="w-4 h-4" />
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Recordatorios de pago */}
+      {(upcomingPayments.length > 0 || overduePayments.length > 0) && (
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 space-y-2">
+          <div className="flex items-center gap-2 mb-1">
+            <Bell className="w-4 h-4 text-blue-600" />
+            <h3 className="text-sm font-semibold text-blue-900">Recordatorios de pago</h3>
+          </div>
+          {overduePayments.map((c) => (
+            <div key={c._id} className="flex items-center justify-between text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                <span className="text-red-800">Debías pagar <span className="font-semibold">{c.name}</span> el día {c.payDay} — ¿ya lo pagaste?</span>
+              </div>
+              <span className="text-red-600 font-semibold shrink-0 ml-3">{fmt(c.amount)}</span>
+            </div>
+          ))}
+          {upcomingPayments.map((c) => {
+            const diff = c.payDay! - todayDay;
+            const label = diff === 0 ? "Hoy" : diff === 1 ? "Mañana" : `El día ${c.payDay}`;
+            return (
+              <div key={c._id} className="flex items-center justify-between text-sm bg-white border border-blue-100 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                  <span className="text-blue-800">
+                    <span className="font-semibold">{label}</span> debes pagar <span className="font-semibold">{c.name}</span>
+                    {c.totalInstallments && (
+                      <span className="text-blue-500 ml-1 text-xs">(cuota {(c.installmentsPaid ?? 0) + 1} de {c.totalInstallments})</span>
+                    )}
+                  </span>
+                </div>
+                <span className="text-blue-700 font-semibold shrink-0 ml-3">{fmt(c.amount)}</span>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -556,7 +663,19 @@ export default function DashboardClient({
                           : <Clock className="w-5 h-5 text-amber-400 shrink-0" />}
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-gray-800 truncate">{c.name}</p>
-                          <p className="text-xs text-gray-400">{c.category}</p>
+                          <p className="text-xs text-gray-400">
+                            {c.category}
+                            {c.totalInstallments && (
+                              <span className="ml-2 text-purple-500">
+                                · {c.totalInstallments - (c.installmentsPaid ?? 0) === 0
+                                  ? "¡Completado!"
+                                  : `Faltan ${c.totalInstallments - (c.installmentsPaid ?? 0)} cuota(s)`}
+                              </span>
+                            )}
+                            {c.payDay && !c.totalInstallments && (
+                              <span className="ml-2 text-blue-400">· Día {c.payDay}</span>
+                            )}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 shrink-0 ml-4">
@@ -767,6 +886,31 @@ export default function DashboardClient({
           )}
         </div>
       </div>
+
+      {/* Insights comparativos del mes */}
+      {insights.length > 0 && (
+        <div className="bg-white rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="font-semibold text-gray-900">Resumen del mes</h2>
+            <InfoTooltip text="Comparativa de tus gastos actuales vs el mes anterior y recordatorios de metas de ahorro." />
+          </div>
+          <div className="space-y-3">
+            {insights.map((insight, i) => (
+              <div key={i} className={`flex items-start gap-3 p-3 rounded-xl ${insight.positive ? "bg-green-50 border border-green-100" : "bg-amber-50 border border-amber-100"}`}>
+                {insight.positive
+                  ? <Trophy className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+                  : <TrendingUp className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />}
+                <p className="text-sm text-gray-700">{insight.message}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 pt-3 border-t border-gray-50">
+            <Link href="/insights" className="text-xs text-green-700 font-medium hover:text-green-900 flex items-center gap-1 w-fit">
+              Ver análisis completo <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Planes de ahorro */}
       {savingsPlans.length > 0 && (

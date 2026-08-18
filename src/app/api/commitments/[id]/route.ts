@@ -10,12 +10,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const { id } = await params;
-  const { name, amount, type, category, isActive } = await req.json();
+  const body = await req.json();
   await connectDB();
+
+  const allowed = ["name", "amount", "type", "category", "isActive", "payDay", "totalInstallments", "installmentsPaid"];
+  const setFields: Record<string, unknown> = {};
+  for (const field of allowed) {
+    if (body[field] !== undefined) setFields[field] = body[field];
+  }
 
   const commitment = await Commitment.findOneAndUpdate(
     { _id: id, userId: session.user.id },
-    { name, amount, type, category, isActive },
+    { $set: setFields },
     { new: true }
   );
 

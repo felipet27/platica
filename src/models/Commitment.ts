@@ -7,6 +7,9 @@ export interface ICommitment extends Document {
   type: "income" | "expense";
   category: string;
   isActive: boolean;
+  payDay?: number;
+  totalInstallments?: number;
+  installmentsPaid?: number;
 }
 
 const CommitmentSchema = new Schema<ICommitment>(
@@ -17,6 +20,9 @@ const CommitmentSchema = new Schema<ICommitment>(
     type: { type: String, enum: ["income", "expense"], required: true },
     category: { type: String, required: true },
     isActive: { type: Boolean, default: true },
+    payDay: { type: Number, min: 1, max: 31, default: null },
+    totalInstallments: { type: Number, min: 1, default: null },
+    installmentsPaid: { type: Number, min: 0, default: 0 },
   },
   { timestamps: true }
 );

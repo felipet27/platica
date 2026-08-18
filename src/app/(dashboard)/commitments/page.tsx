@@ -12,6 +12,9 @@ interface Commitment {
   type: "income" | "expense";
   category: string;
   isActive: boolean;
+  payDay?: number;
+  totalInstallments?: number;
+  installmentsPaid?: number;
 }
 
 const EMPTY_FORM = {
@@ -19,6 +22,8 @@ const EMPTY_FORM = {
   amount: "",
   type: "expense" as "income" | "expense",
   category: "",
+  payDay: "",
+  totalInstallments: "",
 };
 
 export default function CommitmentsPage() {
@@ -48,14 +53,28 @@ export default function CommitmentsPage() {
 
   function openEdit(c: Commitment) {
     setEditing(c);
-    setForm({ name: c.name, amount: String(c.amount), type: c.type, category: c.category });
+    setForm({
+      name: c.name,
+      amount: String(c.amount),
+      type: c.type,
+      category: c.category,
+      payDay: c.payDay ? String(c.payDay) : "",
+      totalInstallments: c.totalInstallments ? String(c.totalInstallments) : "",
+    });
     setShowForm(true);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-    const body = { ...form, amount: parseFloat(form.amount) };
+    const body = {
+      name: form.name,
+      amount: parseFloat(form.amount),
+      type: form.type,
+      category: form.category,
+      payDay: form.payDay ? parseInt(form.payDay) : undefined,
+      totalInstallments: form.totalInstallments ? parseInt(form.totalInstallments) : undefined,
+    };
 
     if (editing) {
       await fetch(`/api/commitments/${editing._id}`, {
@@ -188,6 +207,52 @@ export default function CommitmentsPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Campos opcionales */}
+              <div className="border-t border-gray-100 pt-4 space-y-3">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Opciones adicionales</p>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Día de pago mensual <span className="text-gray-400 font-normal">(opcional, 1–31)</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={form.payDay}
+                    onChange={(e) => setForm({ ...form, payDay: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    placeholder="Ej: 10 (para el día 10 de cada mes)"
+                  />
+                  {form.payDay && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      Te recordaremos este pago el día {form.payDay} de cada mes.
+                    </p>
+                  )}
+                </div>
+
+                {form.type === "expense" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Total de cuotas <span className="text-gray-400 font-normal">(opcional, solo para préstamos)</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={form.totalInstallments}
+                      onChange={(e) => setForm({ ...form, totalInstallments: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                      placeholder="Ej: 12 (para un préstamo a 12 cuotas)"
+                    />
+                    {form.totalInstallments && (
+                      <p className="text-xs text-purple-600 mt-1">
+                        La app contará las cuotas que pagues y te avisará cuándo termines.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 pt-2">
@@ -324,7 +389,25 @@ function CommitmentSection({
                 key={c._id}
                 className={`hover:bg-gray-50 transition-colors ${!c.isActive ? "opacity-50" : ""}`}
               >
-                <td className="px-5 py-3.5 text-sm font-medium text-gray-900">{c.name}</td>
+                <td className="px-5 py-3.5">
+                  <p className="text-sm font-medium text-gray-900">{c.name}</p>
+                  <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                    {c.payDay && (
+                      <span className="text-xs text-blue-500">Día {c.payDay} de cada mes</span>
+                    )}
+                    {c.totalInstallments && (
+                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${
+                        (c.installmentsPaid ?? 0) >= c.totalInstallments
+                          ? "bg-green-100 text-green-700"
+                          : "bg-purple-100 text-purple-700"
+                      }`}>
+                        {(c.installmentsPaid ?? 0) >= c.totalInstallments
+                          ? "¡Préstamo completado!"
+                          : `Faltan ${c.totalInstallments - (c.installmentsPaid ?? 0)} cuota(s) de ${c.totalInstallments}`}
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-5 py-3.5">
                   <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
                     {c.category}
