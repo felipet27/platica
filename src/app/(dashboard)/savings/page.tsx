@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Target, Trash2, TrendingUp, AlertTriangle, Pencil, X } from "lucide-react";
 import { PageInfoTooltip } from "@/components/ui/PageInfoTooltip";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -237,49 +238,34 @@ export default function SavingsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Meta de ahorro</label>
-                <input
-                  type="number"
+                <MoneyInput
                   required
-                  min="1"
-                  step="0.01"
                   value={form.targetAmount}
-                  onChange={(e) => setForm({ ...form, targetAmount: e.target.value })}
-                  onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
+                  onChange={(v) => setForm({ ...form, targetAmount: v })}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                  placeholder="0.00"
+                  placeholder="0"
                 />
-                <p className="text-xs text-gray-400 mt-1">Si usas decimales, separa con punto (.). Ej: 150000.50</p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad ya ahorrada</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
+                <MoneyInput
                   value={form.currentAmount}
-                  onChange={(e) => setForm({ ...form, currentAmount: e.target.value })}
-                  onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
+                  onChange={(v) => setForm({ ...form, currentAmount: v })}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                  placeholder="0.00"
+                  placeholder="0"
                 />
-                <p className="text-xs text-gray-400 mt-1">Si usas decimales, separa con punto (.). Ej: 150000.50</p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Contribución mensual</label>
-                <input
-                  type="number"
+                <MoneyInput
                   required
-                  min="0.01"
-                  step="0.01"
                   value={form.monthlyContribution}
-                  onChange={(e) => setForm({ ...form, monthlyContribution: e.target.value })}
-                  onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
+                  onChange={(v) => setForm({ ...form, monthlyContribution: v })}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                  placeholder="0.00"
+                  placeholder="0"
                 />
-                <p className="text-xs text-gray-400 mt-1">Si usas decimales, separa con punto (.). Ej: 150000.50</p>
               </div>
 
               <div>
@@ -346,19 +332,14 @@ export default function SavingsPage() {
             <form onSubmit={submitContribution} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Monto a agregar</label>
-                <input
-                  type="number"
+                <MoneyInput
                   required
-                  min="0.01"
-                  step="0.01"
                   autoFocus
                   value={contributionAmount}
-                  onChange={(e) => setContributionAmount(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
+                  onChange={(v) => setContributionAmount(v)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                  placeholder="0.00"
+                  placeholder="0"
                 />
-                <p className="text-xs text-gray-400 mt-1">Si usas decimales, separa con punto (.). Ej: 150000.50</p>
               </div>
               <div className="flex gap-3">
                 <button
