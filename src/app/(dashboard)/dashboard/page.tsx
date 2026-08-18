@@ -117,6 +117,7 @@ async function getDashboardData(userId: string) {
     name: c.name,
     amount: c.amount,
     type: c.type as "income" | "expense",
+    incomeType: (c.incomeType ?? "fixed") as "fixed" | "variable",
     category: c.category,
     paid: paidIds.has(c._id.toString()),
     paidAmount: paidIds.get(c._id.toString()) ?? 0,

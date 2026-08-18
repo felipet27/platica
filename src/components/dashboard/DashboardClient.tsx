@@ -46,6 +46,7 @@ interface CommitmentItem {
   name: string;
   amount: number;
   type: "income" | "expense";
+  incomeType?: "fixed" | "variable";
   category: string;
   paid: boolean;
   paidAmount: number;
@@ -273,6 +274,8 @@ export default function DashboardClient({
   }, []);
 
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [varPayModal, setVarPayModal] = useState<{ commitment: CommitmentItem; amount: string } | null>(null);
+  const [varPaySubmitting, setVarPaySubmitting] = useState(false);
 
   async function payCommitment(c: CommitmentItem) {
     setPayingId(c._id);
@@ -304,7 +307,31 @@ export default function DashboardClient({
     router.refresh();
   }
 
+  async function submitVariablePayment() {
+    if (!varPayModal) return;
+    const amount = parseFloat(varPayModal.amount);
+    if (!amount || amount <= 0) return;
+    setVarPaySubmitting(true);
+    await fetch("/api/transactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "income",
+        amount,
+        category: varPayModal.commitment.category,
+        description: varPayModal.commitment.name,
+        date: new Date().toISOString().slice(0, 10),
+        commitmentId: varPayModal.commitment._id,
+      }),
+    });
+    setVarPaySubmitting(false);
+    setVarPayModal(null);
+    router.refresh();
+  }
+
   const expenseCommitments = commitments.filter((c) => c.type === "expense");
+  const fixedIncomeCommitments = commitments.filter((c) => c.type === "income" && (c.incomeType ?? "fixed") === "fixed");
+  const variableIncomeCommitments = commitments.filter((c) => c.type === "income" && c.incomeType === "variable");
   const incomeCommitments = commitments.filter((c) => c.type === "income");
   const totalExpenseCommitments = expenseCommitments.reduce((s, c) => s + c.amount, 0);
   const paidCount = expenseCommitments.filter((c) => c.paid).length;
@@ -637,10 +664,10 @@ export default function DashboardClient({
                 </>
               )}
 
-              {incomeCommitments.length > 0 && (
+              {fixedIncomeCommitments.length > 0 && (
                 <div className={expenseCommitments.length > 0 ? "pt-4" : ""}>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Ingresos esperados</p>
-                  {incomeCommitments.map((c) => (
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Ingresos fijos</p>
+                  {fixedIncomeCommitments.map((c) => (
                     <div key={c._id} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
                       <div className="flex items-center gap-3">
                         {c.paid
@@ -663,6 +690,50 @@ export default function DashboardClient({
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {variableIncomeCommitments.length > 0 && (
+                <div className={expenseCommitments.length > 0 || fixedIncomeCommitments.length > 0 ? "pt-4" : ""}>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Ingresos variables</p>
+                  {variableIncomeCommitments.map((c) => {
+                    const pct = c.amount > 0 ? Math.min(100, Math.round((c.paidAmount / c.amount) * 100)) : 0;
+                    const reached = c.paidAmount >= c.amount;
+                    return (
+                      <div key={c._id} className="py-2.5 border-b border-gray-50 last:border-0">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2">
+                            {reached
+                              ? <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                              : <Clock className="w-5 h-5 text-amber-400 shrink-0" />}
+                            <p className="text-sm font-medium text-gray-800">{c.name}</p>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0 ml-4">
+                            <div className="text-right">
+                              <p className="text-sm font-semibold text-green-600">{fmt(c.paidAmount)}</p>
+                              <p className="text-xs text-gray-400">de {fmt(c.amount)}</p>
+                            </div>
+                            <button
+                              onClick={() => setVarPayModal({ commitment: c, amount: "" })}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
+                            >
+                              <CreditCard className="w-3.5 h-3.5" />
+                              Registrar pago
+                            </button>
+                          </div>
+                        </div>
+                        <div className="ml-7">
+                          <div className="w-full bg-gray-100 rounded-full h-1.5">
+                            <div
+                              className={`h-1.5 rounded-full transition-all ${reached ? "bg-green-500" : "bg-amber-400"}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-gray-400 mt-0.5">{pct}% de la meta mensual</p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
@@ -867,6 +938,60 @@ export default function DashboardClient({
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Modal registrar pago ingreso variable */}
+      {varPayModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-lg font-semibold text-gray-900">Registrar pago recibido</h2>
+              <button onClick={() => setVarPayModal(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-5">
+              {varPayModal.commitment.name} · Llevas{" "}
+              <span className="font-medium text-green-600">{fmt(varPayModal.commitment.paidAmount)}</span>{" "}
+              de <span className="font-medium">{fmt(varPayModal.commitment.amount)}</span>
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Monto recibido hoy</label>
+                <input
+                  type="number"
+                  required
+                  min="0.01"
+                  step="0.01"
+                  autoFocus
+                  value={varPayModal.amount}
+                  onChange={(e) => setVarPayModal({ ...varPayModal, amount: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === "-" || e.key === "e") e.preventDefault(); }}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none text-lg font-semibold"
+                  placeholder="0.00"
+                />
+                <p className="text-xs text-gray-400 mt-1">Si usas decimales, separa con punto (.). Ej: 150000.50</p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setVarPayModal(null)}
+                  className="flex-1 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 font-medium text-sm"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={submitVariablePayment}
+                  disabled={varPaySubmitting || !varPayModal.amount || parseFloat(varPayModal.amount) <= 0}
+                  className="flex-1 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-sm disabled:opacity-50 transition-colors"
+                >
+                  {varPaySubmitting ? "Guardando..." : "Registrar"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

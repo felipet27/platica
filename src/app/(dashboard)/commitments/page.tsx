@@ -11,6 +11,7 @@ interface Commitment {
   name: string;
   amount: number;
   type: "income" | "expense";
+  incomeType?: "fixed" | "variable";
   category: string;
   isActive: boolean;
   payDay?: number;
@@ -22,6 +23,7 @@ const EMPTY_FORM = {
   name: "",
   amount: "",
   type: "expense" as "income" | "expense",
+  incomeType: "fixed" as "fixed" | "variable",
   category: "",
   payDay: "",
   totalInstallments: "",
@@ -58,6 +60,7 @@ export default function CommitmentsPage() {
       name: c.name,
       amount: String(c.amount),
       type: c.type,
+      incomeType: c.incomeType ?? "fixed",
       category: c.category,
       payDay: c.payDay ? String(c.payDay) : "",
       totalInstallments: c.totalInstallments ? String(c.totalInstallments) : "",
@@ -72,6 +75,7 @@ export default function CommitmentsPage() {
       name: form.name,
       amount: parseFloat(form.amount),
       type: form.type,
+      ...(form.type === "income" ? { incomeType: form.incomeType } : {}),
       category: form.category,
       payDay: form.payDay ? parseInt(form.payDay) : undefined,
       totalInstallments: form.totalInstallments ? parseInt(form.totalInstallments) : undefined,
@@ -117,7 +121,8 @@ export default function CommitmentsPage() {
   const { fmt } = useSettings();
   const categories = CATEGORIES[form.type];
   const expenses = commitments.filter((c) => c.type === "expense");
-  const incomes = commitments.filter((c) => c.type === "income");
+  const fixedIncomes = commitments.filter((c) => c.type === "income" && (c.incomeType ?? "fixed") === "fixed");
+  const variableIncomes = commitments.filter((c) => c.type === "income" && c.incomeType === "variable");
 
   return (
     <div className="space-y-6">
@@ -166,6 +171,33 @@ export default function CommitmentsPage() {
                 ))}
               </div>
 
+              {form.type === "income" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">¿Cómo recibes este ingreso?</label>
+                  <div className="flex gap-2">
+                    {(["fixed", "variable"] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setForm({ ...form, incomeType: t, payDay: "" })}
+                        className={`flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
+                          form.incomeType === t
+                            ? "bg-green-100 text-green-700 ring-1 ring-green-400"
+                            : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        {t === "fixed" ? "Fijo" : "Variable"}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {form.incomeType === "variable"
+                      ? "Monto distinto cada vez: ventas, comisiones, domicilios, etc."
+                      : "Mismo monto en fecha definida: salario, arriendo cobrado, etc."}
+                  </p>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
                 <input
@@ -175,14 +207,18 @@ export default function CommitmentsPage() {
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
                   placeholder={
-                    form.type === "income" ? "Ej: Salario mensual" : "Ej: Arriendo apartamento"
+                    form.type === "income"
+                      ? form.incomeType === "variable" ? "Ej: Ventas del mes" : "Ej: Salario mensual"
+                      : "Ej: Arriendo apartamento"
                   }
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Monto esperado
+                  {form.type === "income" && form.incomeType === "variable"
+                    ? "Meta mensual estimada"
+                    : "Monto esperado"}
                 </label>
                 <input
                   type="number"
@@ -195,7 +231,11 @@ export default function CommitmentsPage() {
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
                   placeholder="0.00"
                 />
-                <p className="text-xs text-gray-400 mt-1">Si usas decimales, separa con punto (.). Ej: 150000.50</p>
+                {form.type === "income" && form.incomeType === "variable" ? (
+                  <p className="text-xs text-gray-400 mt-1">Cuánto esperas recibir en el mes. Registra cada pago desde el Dashboard.</p>
+                ) : (
+                  <p className="text-xs text-gray-400 mt-1">Si usas decimales, separa con punto (.). Ej: 150000.50</p>
+                )}
               </div>
 
               <div>
@@ -219,25 +259,27 @@ export default function CommitmentsPage() {
               <div className="border-t border-gray-100 pt-4 space-y-3">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Opciones adicionales</p>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Día de pago mensual <span className="text-gray-400 font-normal">(opcional, 1–31)</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="31"
-                    value={form.payDay}
-                    onChange={(e) => setForm({ ...form, payDay: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                    placeholder="Ej: 10 (para el día 10 de cada mes)"
-                  />
-                  {form.payDay && (
-                    <p className="text-xs text-blue-600 mt-1">
-                      Te recordaremos este pago el día {form.payDay} de cada mes.
-                    </p>
-                  )}
-                </div>
+                {!(form.type === "income" && form.incomeType === "variable") && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Día de pago mensual <span className="text-gray-400 font-normal">(opcional, 1–31)</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={form.payDay}
+                      onChange={(e) => setForm({ ...form, payDay: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                      placeholder="Ej: 10 (para el día 10 de cada mes)"
+                    />
+                    {form.payDay && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        Te recordaremos este pago el día {form.payDay} de cada mes.
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {form.type === "expense" && (
                   <div>
@@ -326,12 +368,23 @@ export default function CommitmentsPage() {
 
       <CommitmentSection
         title="Ingresos fijos"
-        items={incomes}
+        items={fixedIncomes}
         type="income"
-        emptyMessage="No tienes ingresos fijos configurados. Agrega tu salario u otros ingresos recurrentes."
+        emptyMessage="No tienes ingresos fijos. Agrega tu salario u otros ingresos de monto constante."
         onEdit={openEdit}
         onDelete={setDeleteCommitment}
         onToggle={toggleActive}
+      />
+
+      <CommitmentSection
+        title="Ingresos variables"
+        items={variableIncomes}
+        type="income"
+        emptyMessage="No tienes ingresos variables. Agrega ventas, comisiones u otros ingresos de monto distinto cada vez."
+        onEdit={openEdit}
+        onDelete={setDeleteCommitment}
+        onToggle={toggleActive}
+        showVariableBadge
       />
     </div>
   );
@@ -345,6 +398,7 @@ function CommitmentSection({
   onEdit,
   onDelete,
   onToggle,
+  showVariableBadge = false,
 }: {
   title: string;
   items: Commitment[];
@@ -353,21 +407,19 @@ function CommitmentSection({
   onEdit: (c: Commitment) => void;
   onDelete: (c: Commitment) => void;
   onToggle: (c: Commitment) => void;
+  showVariableBadge?: boolean;
 }) {
   const { fmt } = useSettings();
   const activeTotal = items.filter((c) => c.isActive).reduce((s, c) => s + c.amount, 0);
+  const amountHeader = showVariableBadge ? "Meta mensual" : "Monto esperado";
 
   return (
     <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
         <h2 className="font-semibold text-gray-900">{title}</h2>
         {activeTotal > 0 && (
-          <span
-            className={`text-sm font-semibold ${
-              type === "income" ? "text-green-600" : "text-red-500"
-            }`}
-          >
-            Total activo: {fmt(activeTotal)}
+          <span className={`text-sm font-semibold ${type === "income" ? "text-green-600" : "text-red-500"}`}>
+            {showVariableBadge ? "Meta total activa:" : "Total activo:"} {fmt(activeTotal)}
           </span>
         )}
       </div>
@@ -376,92 +428,86 @@ function CommitmentSection({
         <div className="text-center py-10 text-gray-400 text-sm px-6">{emptyMessage}</div>
       ) : (
         <div className="overflow-x-auto">
-        <table className="w-full min-w-[520px]">
-          <thead className="bg-gray-50 border-b border-gray-100">
-            <tr>
-              {["Nombre", "Categoría", "Monto esperado", "Activo", ""].map((h) => (
-                <th
-                  key={h}
-                  className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide"
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {items.map((c) => (
-              <tr
-                key={c._id}
-                className={`hover:bg-gray-50 transition-colors ${!c.isActive ? "opacity-50" : ""}`}
-              >
-                <td className="px-5 py-3.5">
-                  <p className="text-sm font-medium text-gray-900">{c.name}</p>
-                  <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                    {c.payDay && (
-                      <span className="text-xs text-blue-500">Día {c.payDay} de cada mes</span>
-                    )}
-                    {c.totalInstallments && (
-                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${
-                        (c.installmentsPaid ?? 0) >= c.totalInstallments
-                          ? "bg-green-100 text-green-700"
-                          : "bg-purple-100 text-purple-700"
-                      }`}>
-                        {(c.installmentsPaid ?? 0) >= c.totalInstallments
-                          ? "¡Préstamo completado!"
-                          : `Faltan ${c.totalInstallments - (c.installmentsPaid ?? 0)} cuota(s) de ${c.totalInstallments}`}
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-5 py-3.5">
-                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                    {c.category}
-                  </span>
-                </td>
-                <td className="px-5 py-3.5">
-                  <span
-                    className={`text-sm font-semibold ${
-                      type === "income" ? "text-green-600" : "text-red-500"
-                    }`}
-                  >
-                    {fmt(c.amount)}
-                  </span>
-                </td>
-                <td className="px-5 py-3.5">
-                  <button
-                    onClick={() => onToggle(c)}
-                    title={c.isActive ? "Clic para desactivar" : "Clic para activar"}
-                    className="flex items-center gap-2 group"
-                  >
-                    <div className={`relative w-10 h-5 rounded-full transition-colors duration-200 ${c.isActive ? "bg-green-500" : "bg-gray-200"}`}>
-                      <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${c.isActive ? "translate-x-5" : "translate-x-0.5"}`} />
-                    </div>
-                    <span className={`text-xs font-medium ${c.isActive ? "text-green-600" : "text-gray-400"}`}>
-                      {c.isActive ? "Activo" : "Inactivo"}
-                    </span>
-                  </button>
-                </td>
-                <td className="px-5 py-3.5">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => onEdit(c)}
-                      className="text-gray-400 hover:text-blue-500 transition-colors"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => onDelete(c)}
-                      className="text-gray-300 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
+          <table className="w-full min-w-[520px]">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                {["Nombre", "Categoría", amountHeader, "Activo", ""].map((h) => (
+                  <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    {h}
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {items.map((c) => (
+                <tr key={c._id} className={`hover:bg-gray-50 transition-colors ${!c.isActive ? "opacity-50" : ""}`}>
+                  <td className="px-5 py-3.5">
+                    <p className="text-sm font-medium text-gray-900">{c.name}</p>
+                    <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                      {showVariableBadge && (
+                        <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                          Variable · Registra pagos desde el Dashboard
+                        </span>
+                      )}
+                      {c.payDay && (
+                        <span className="text-xs text-blue-500">Día {c.payDay} de cada mes</span>
+                      )}
+                      {c.totalInstallments && (
+                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${
+                          (c.installmentsPaid ?? 0) >= c.totalInstallments
+                            ? "bg-green-100 text-green-700"
+                            : "bg-purple-100 text-purple-700"
+                        }`}>
+                          {(c.installmentsPaid ?? 0) >= c.totalInstallments
+                            ? "¡Préstamo completado!"
+                            : `Faltan ${c.totalInstallments - (c.installmentsPaid ?? 0)} cuota(s) de ${c.totalInstallments}`}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                      {c.category}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <div>
+                      <span className={`text-sm font-semibold ${type === "income" ? "text-green-600" : "text-red-500"}`}>
+                        {fmt(c.amount)}
+                      </span>
+                      {showVariableBadge && (
+                        <p className="text-xs text-gray-400">estimado</p>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <button
+                      onClick={() => onToggle(c)}
+                      title={c.isActive ? "Clic para desactivar" : "Clic para activar"}
+                      className="flex items-center gap-2 group"
+                    >
+                      <div className={`relative w-10 h-5 rounded-full transition-colors duration-200 ${c.isActive ? "bg-green-500" : "bg-gray-200"}`}>
+                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${c.isActive ? "translate-x-5" : "translate-x-0.5"}`} />
+                      </div>
+                      <span className={`text-xs font-medium ${c.isActive ? "text-green-600" : "text-gray-400"}`}>
+                        {c.isActive ? "Activo" : "Inactivo"}
+                      </span>
+                    </button>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => onEdit(c)} className="text-gray-400 hover:text-blue-500 transition-colors">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => onDelete(c)} className="text-gray-300 hover:text-red-500 transition-colors">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

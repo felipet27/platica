@@ -13,7 +13,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const body = await req.json();
   await connectDB();
 
-  const allowed = ["name", "amount", "type", "category", "isActive", "payDay", "totalInstallments", "installmentsPaid"];
+  const allowed = ["name", "amount", "type", "incomeType", "category", "isActive", "payDay", "totalInstallments", "installmentsPaid"];
   const setFields: Record<string, unknown> = {};
   for (const field of allowed) {
     if (body[field] !== undefined) setFields[field] = body[field];

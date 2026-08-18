@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const { name, amount, type, category, payDay, totalInstallments } = await req.json();
+  const { name, amount, type, incomeType, category, payDay, totalInstallments } = await req.json();
   if (!name || !amount || !type || !category) {
     return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 });
   }
@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
     name,
     amount: parseFloat(amount),
     type,
+    ...(type === "income" ? { incomeType: incomeType ?? "fixed" } : {}),
     category,
     ...(payDay ? { payDay: parseInt(payDay) } : {}),
     ...(totalInstallments ? { totalInstallments: parseInt(totalInstallments), installmentsPaid: 0 } : {}),
