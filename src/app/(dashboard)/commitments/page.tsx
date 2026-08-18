@@ -13,6 +13,7 @@ interface Commitment {
   amount: number;
   type: "income" | "expense";
   incomeType?: "fixed" | "variable";
+  frequency?: "monthly" | "biweekly";
   category: string;
   isActive: boolean;
   payDay?: number;
@@ -25,6 +26,7 @@ const EMPTY_FORM = {
   amount: "",
   type: "expense" as "income" | "expense",
   incomeType: "fixed" as "fixed" | "variable",
+  frequency: "monthly" as "monthly" | "biweekly",
   category: "",
   payDay: "",
   totalInstallments: "",
@@ -62,6 +64,7 @@ export default function CommitmentsPage() {
       amount: String(c.amount),
       type: c.type,
       incomeType: c.incomeType ?? "fixed",
+      frequency: c.frequency ?? "monthly",
       category: c.category,
       payDay: c.payDay ? String(c.payDay) : "",
       totalInstallments: c.totalInstallments ? String(c.totalInstallments) : "",
@@ -76,7 +79,7 @@ export default function CommitmentsPage() {
       name: form.name,
       amount: parseFloat(form.amount),
       type: form.type,
-      ...(form.type === "income" ? { incomeType: form.incomeType } : {}),
+      ...(form.type === "income" ? { incomeType: form.incomeType, frequency: form.frequency } : {}),
       category: form.category,
       payDay: form.payDay ? parseInt(form.payDay) : undefined,
       totalInstallments: form.totalInstallments ? parseInt(form.totalInstallments) : undefined,
@@ -124,6 +127,7 @@ export default function CommitmentsPage() {
   const expenses = commitments.filter((c) => c.type === "expense");
   const fixedIncomes = commitments.filter((c) => c.type === "income" && (c.incomeType ?? "fixed") === "fixed");
   const variableIncomes = commitments.filter((c) => c.type === "income" && c.incomeType === "variable");
+  const hasQuincenal = fixedIncomes.some((c) => c.frequency === "biweekly");
 
   return (
     <div className="space-y-6">
@@ -199,6 +203,33 @@ export default function CommitmentsPage() {
                 </div>
               )}
 
+              {form.type === "income" && form.incomeType === "fixed" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">¿Cada cuánto te pagan?</label>
+                  <div className="flex gap-2">
+                    {(["monthly", "biweekly"] as const).map((f) => (
+                      <button
+                        key={f}
+                        type="button"
+                        onClick={() => setForm({ ...form, frequency: f })}
+                        className={`flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
+                          form.frequency === f
+                            ? "bg-green-100 text-green-700 ring-1 ring-green-400"
+                            : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        {f === "monthly" ? "Mensual" : "Quincenal"}
+                      </button>
+                    ))}
+                  </div>
+                  {form.frequency === "biweekly" && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      Recibirás dos pagos al mes separados 15 días.
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
                 <input
@@ -219,6 +250,8 @@ export default function CommitmentsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {form.type === "income" && form.incomeType === "variable"
                     ? "Meta mensual estimada"
+                    : form.type === "income" && form.frequency === "biweekly"
+                    ? "Monto por quincena"
                     : "Monto esperado"}
                 </label>
                 <MoneyInput
@@ -257,22 +290,28 @@ export default function CommitmentsPage() {
                 {!(form.type === "income" && form.incomeType === "variable") && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Día de pago mensual <span className="text-gray-400 font-normal">(opcional, 1–31)</span>
+                      {form.type === "income" && form.frequency === "biweekly"
+                        ? <>Día del primer pago <span className="text-gray-400 font-normal">(opcional, 1–15)</span></>
+                        : <>Día de pago mensual <span className="text-gray-400 font-normal">(opcional, 1–31)</span></>}
                     </label>
                     <input
                       type="number"
                       min="1"
-                      max="31"
+                      max={form.type === "income" && form.frequency === "biweekly" ? "15" : "31"}
                       value={form.payDay}
                       onChange={(e) => setForm({ ...form, payDay: e.target.value })}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                      placeholder="Ej: 10 (para el día 10 de cada mes)"
+                      placeholder={form.type === "income" && form.frequency === "biweekly" ? "Ej: 1" : "Ej: 10"}
                     />
-                    {form.payDay && (
+                    {form.payDay && form.type === "income" && form.frequency === "biweekly" ? (
+                      <p className="text-xs text-blue-600 mt-1">
+                        Primera quincena: día {form.payDay} · Segunda quincena: día {Math.min(parseInt(form.payDay) + 15, 31)}
+                      </p>
+                    ) : form.payDay ? (
                       <p className="text-xs text-blue-600 mt-1">
                         Te recordaremos este pago el día {form.payDay} de cada mes.
                       </p>
-                    )}
+                    ) : null}
                   </div>
                 )}
 
@@ -405,8 +444,8 @@ function CommitmentSection({
   showVariableBadge?: boolean;
 }) {
   const { fmt } = useSettings();
-  const activeTotal = items.filter((c) => c.isActive).reduce((s, c) => s + c.amount, 0);
-  const amountHeader = showVariableBadge ? "Meta mensual" : "Monto esperado";
+  const activeTotal = items.filter((c) => c.isActive).reduce((s, c) => s + (c.frequency === "biweekly" ? c.amount * 2 : c.amount), 0);
+  const amountHeader = showVariableBadge ? "Meta mensual" : "Monto mensual";
 
   return (
     <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -444,9 +483,18 @@ function CommitmentSection({
                           Variable · Registra pagos desde el Dashboard
                         </span>
                       )}
-                      {c.payDay && (
-                        <span className="text-xs text-blue-500">Día {c.payDay} de cada mes</span>
+                      {c.frequency === "biweekly" && (
+                        <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                          Quincenal
+                        </span>
                       )}
+                      {c.payDay && c.frequency === "biweekly" ? (
+                        <span className="text-xs text-blue-500">
+                          Días {c.payDay} y {Math.min(c.payDay + 15, 31)} de cada mes
+                        </span>
+                      ) : c.payDay ? (
+                        <span className="text-xs text-blue-500">Día {c.payDay} de cada mes</span>
+                      ) : null}
                       {c.totalInstallments && (
                         <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${
                           (c.installmentsPaid ?? 0) >= c.totalInstallments
@@ -468,8 +516,11 @@ function CommitmentSection({
                   <td className="px-5 py-3.5">
                     <div>
                       <span className={`text-sm font-semibold ${type === "income" ? "text-green-600" : "text-red-500"}`}>
-                        {fmt(c.amount)}
+                        {fmt(c.frequency === "biweekly" ? c.amount * 2 : c.amount)}
                       </span>
+                      {c.frequency === "biweekly" && (
+                        <p className="text-xs text-gray-400">{fmt(c.amount)}/quincena</p>
+                      )}
                       {showVariableBadge && (
                         <p className="text-xs text-gray-400">estimado</p>
                       )}

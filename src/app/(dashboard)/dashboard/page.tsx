@@ -91,7 +91,7 @@ async function getDashboardData(userId: string) {
           date: { $gte: monthStart, $lte: monthEnd },
         },
       },
-      { $group: { _id: "$commitmentId", total: { $sum: "$amount" } } },
+      { $group: { _id: "$commitmentId", total: { $sum: "$amount" }, count: { $sum: 1 } } },
     ]),
     Transaction.aggregate([
       {
@@ -109,22 +109,27 @@ async function getDashboardData(userId: string) {
   const current = monthlySummaries[monthlySummaries.length - 1];
 
   const paidIds = new Map(
-    paidCommitmentsAgg.map((p) => [p._id?.toString(), p.total as number])
+    paidCommitmentsAgg.map((p) => [p._id?.toString(), { total: p.total as number, count: p.count as number }])
   );
 
-  const commitments = activeCommitments.map((c) => ({
-    _id: c._id.toString(),
-    name: c.name,
-    amount: c.amount,
-    type: c.type as "income" | "expense",
-    incomeType: (c.incomeType ?? "fixed") as "fixed" | "variable",
-    category: c.category,
-    paid: paidIds.has(c._id.toString()),
-    paidAmount: paidIds.get(c._id.toString()) ?? 0,
-    payDay: c.payDay ?? undefined,
-    totalInstallments: c.totalInstallments ?? undefined,
-    installmentsPaid: c.installmentsPaid ?? 0,
-  }));
+  const commitments = activeCommitments.map((c) => {
+    const paid = paidIds.get(c._id.toString());
+    return {
+      _id: c._id.toString(),
+      name: c.name,
+      amount: c.amount,
+      type: c.type as "income" | "expense",
+      incomeType: (c.incomeType ?? "fixed") as "fixed" | "variable",
+      frequency: (c.frequency ?? "monthly") as "monthly" | "biweekly",
+      category: c.category,
+      paid: !!paid,
+      paidAmount: paid?.total ?? 0,
+      paidCount: paid?.count ?? 0,
+      payDay: c.payDay ?? undefined,
+      totalInstallments: c.totalInstallments ?? undefined,
+      installmentsPaid: c.installmentsPaid ?? 0,
+    };
+  });
 
   return {
     monthlySummaries,

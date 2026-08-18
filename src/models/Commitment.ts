@@ -6,6 +6,7 @@ export interface ICommitment extends Document {
   amount: number;
   type: "income" | "expense";
   incomeType?: "fixed" | "variable";
+  frequency?: "monthly" | "biweekly";
   category: string;
   isActive: boolean;
   payDay?: number;
@@ -20,6 +21,7 @@ const CommitmentSchema = new Schema<ICommitment>(
     amount: { type: Number, required: true, min: 0 },
     type: { type: String, enum: ["income", "expense"], required: true },
     incomeType: { type: String, enum: ["fixed", "variable"], default: "fixed" },
+    frequency: { type: String, enum: ["monthly", "biweekly"], default: "monthly" },
     category: { type: String, required: true },
     isActive: { type: Boolean, default: true },
     payDay: { type: Number, min: 1, max: 31, default: null },
