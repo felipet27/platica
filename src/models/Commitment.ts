@@ -5,6 +5,7 @@ export interface ICommitment extends Document {
   name: string;
   amount: number;
   type: "income" | "expense";
+  expenseType?: "fixed" | "variable";
   incomeType?: "fixed" | "variable";
   frequency?: "monthly" | "biweekly";
   category: string;
@@ -12,6 +13,7 @@ export interface ICommitment extends Document {
   payDay?: number;
   totalInstallments?: number;
   installmentsPaid?: number;
+  month?: string; // "YYYY-MM", solo para gastos variables
 }
 
 const CommitmentSchema = new Schema<ICommitment>(
@@ -20,6 +22,7 @@ const CommitmentSchema = new Schema<ICommitment>(
     name: { type: String, required: true, trim: true },
     amount: { type: Number, required: true, min: 0 },
     type: { type: String, enum: ["income", "expense"], required: true },
+    expenseType: { type: String, enum: ["fixed", "variable"], default: "fixed" },
     incomeType: { type: String, enum: ["fixed", "variable"], default: "fixed" },
     frequency: { type: String, enum: ["monthly", "biweekly"], default: "monthly" },
     category: { type: String, required: true },
@@ -27,6 +30,7 @@ const CommitmentSchema = new Schema<ICommitment>(
     payDay: { type: Number, min: 1, max: 31, default: null },
     totalInstallments: { type: Number, min: 1, default: null },
     installmentsPaid: { type: Number, min: 0, default: 0 },
+    month: { type: String, default: null },
   },
   { timestamps: true }
 );

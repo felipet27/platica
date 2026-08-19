@@ -22,7 +22,6 @@ import {
   Clock,
   ShieldCheck,
   X,
-  Info,
 } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { PageInfoTooltip } from "@/components/ui/PageInfoTooltip";
@@ -109,7 +108,7 @@ export default function InsightsPage() {
   }, []);
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64 text-gray-400">Analizando tus finanzas...</div>;
+    return <div className="flex items-center justify-center h-64 text-gray-400">Mirando tus números...</div>;
   }
 
   if (!data) return null;
@@ -123,9 +122,9 @@ export default function InsightsPage() {
   const savingsBg =
     savingsRate >= 20 ? "bg-green-500" : savingsRate >= 10 ? "bg-amber-400" : "bg-red-500";
   const savingsLabel =
-    savingsRate >= 20 ? "¡Excelente! Estás en la meta del 20%" :
-    savingsRate >= 10 ? "Bien, pero puedes mejorar. Meta: 20%" :
-    "Por debajo de lo recomendado. Meta: 20%";
+    savingsRate >= 20 ? "¡Eso es! Estás guardando lo que se debe." :
+    savingsRate >= 10 ? "Vas bien. Puedes darle un poco más." :
+    "Hay que meterle más ganas al ahorro.";
 
   const ruleData = [
     { name: "Necesidades", value: Math.min(rule.needs.actual, 100), target: rule.needs.target, fill: "#f87171", desc: "Vivienda, alimentación, transporte, servicios" },
@@ -137,10 +136,10 @@ export default function InsightsPage() {
     <div className="space-y-8">
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-gray-900">Consejos financieros</h1>
-          <PageInfoTooltip text="Análisis automático de tus hábitos financieros. Calcula tu tasa de ahorro mensual, aplica la regla 50/30/20, detecta categorías de gasto que aumentaron demasiado y te da recomendaciones personalizadas según tus datos reales." />
+          <h1 className="text-2xl font-bold text-gray-900">¿Cómo va la platíca este mes?</h1>
+          <PageInfoTooltip text="Miramos tus datos del mes y te decimos cómo vas. Calculamos cuánto estás guardando, cómo está repartida tu plata y dónde puedes mejorar. Todo con tus números reales." />
         </div>
-        <p className="text-gray-500 mt-1">Análisis de tus hábitos con recomendaciones para mejorar</p>
+        <p className="text-gray-500 mt-1">Te mostramos tus números para que sepas dónde ajustar.</p>
       </div>
 
       {!hasIncome && showNoIncome && (
@@ -148,10 +147,10 @@ export default function InsightsPage() {
           <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
           <p className="text-amber-800 text-sm flex-1">
             {summary.hasIncomeCommitments
-              ? <>Tienes ingresos fijos configurados pero aún no los has registrado como transacciones este mes. Regístralos desde el{" "}
-                  <Link href="/dashboard" className="underline font-medium">Dashboard</Link> cuando los recibas.</>
-              : <>No tienes ingresos registrados este mes. Agrégalos desde el{" "}
-                  <Link href="/dashboard" className="underline font-medium">Dashboard</Link> para ver el análisis completo.</>
+              ? <>Tienes ingresos fijos configurados pero aún no los has registrado este mes. Agrégalos desde el{" "}
+                  <Link href="/dashboard" className="underline font-medium">inicio</Link> cuando los recibas.</>
+              : <>Todavía no hay ingresos de este mes. Agrégalos desde el{" "}
+                  <Link href="/dashboard" className="underline font-medium">inicio</Link> para ver el análisis completo.</>
             }
           </p>
           <button
@@ -164,16 +163,16 @@ export default function InsightsPage() {
         </div>
       )}
 
-      {/* Tasa de ahorro — protagonista */}
+      {/* Tasa de ahorro */}
       <div className="bg-white rounded-2xl p-6 shadow-sm">
         <div className="flex items-start justify-between mb-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <PiggyBank className="w-5 h-5 text-green-600" />
-              <h2 className="font-semibold text-gray-900">Tu tasa de ahorro este mes</h2>
-              <InfoTooltip text="Mide qué porcentaje de tus ingresos no se fue en consumo. Fórmula: (Ingresos − Gastos de consumo) ÷ Ingresos. Los aportes a planes de ahorro no cuentan como consumo — suben la tasa. Meta recomendada: 20%." />
+              <h2 className="font-semibold text-gray-900">¿Cuánto estás guardando de cada peso?</h2>
+              <InfoTooltip text="Lo calculamos así: (lo que entraste − lo que gastaste en consumo) ÷ lo que entraste. Cada peso que metes a tus ahorros sube este número. La meta ideal es el 20%." />
             </div>
-            <p className="text-xs text-gray-400">(Ingresos − Gastos de consumo) ÷ Ingresos · Meta: 20%</p>
+            <p className="text-xs text-gray-400">Meta: 20% · Entre más alto, mejor</p>
           </div>
           {hasIncome && (
             <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${savingsRate >= 20 ? "bg-green-100 text-green-700" : savingsRate >= 10 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-600"}`}>
@@ -184,14 +183,14 @@ export default function InsightsPage() {
 
         {!hasIncome ? (
           <div className="space-y-4">
-            <p className="text-sm text-gray-400">Aún no hay ingresos registrados este mes — no es posible calcular la tasa.</p>
+            <p className="text-sm text-gray-400">Sin ingresos registrados este mes, no podemos calcular cuánto estás guardando.</p>
             <div className="bg-gray-50 rounded-xl p-4">
               <p className="text-sm font-semibold text-gray-700 mb-3">¿Cuándo empieza a cambiar este número?</p>
               <ol className="space-y-2.5">
                 {[
-                  { n: 1, text: "Registra tus ingresos del mes como transacciones en el Dashboard. Si tienes un salario fijo, también regístralo ahí cuando lo recibas." },
-                  { n: 2, text: "Controla tus gastos de consumo: mientras menos gastes en consumo, más alta la tasa." },
-                  { n: 3, text: "Aporta a tus planes de ahorro: cada aporte registrado sube automáticamente la tasa." },
+                  { n: 1, text: "Registra los ingresos del mes. Si tienes salario fijo, agrégalo cuando lo recibas." },
+                  { n: 2, text: "Controla lo que gastas: entre menos consumas, más alta la tasa." },
+                  { n: 3, text: "Cada aporte a tus planes de ahorro sube este número automáticamente." },
                 ].map(({ n, text }) => (
                   <li key={n} className="flex items-start gap-3 text-sm text-gray-600">
                     <span className="w-5 h-5 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">{n}</span>
@@ -209,7 +208,7 @@ export default function InsightsPage() {
                 <p>Ingresos: <span className="font-medium text-gray-700">{fmt(summary.monthlyIncome)}</span></p>
                 <p>Gastos: <span className="font-medium text-gray-700">{fmt(summary.totalExpense - summary.savingsContributions)}</span></p>
                 {summary.savingsContributions > 0 && (
-                  <p>Aportes a planes: <span className="font-medium text-green-600">+{fmt(summary.savingsContributions)}</span></p>
+                  <p>Aportes a ahorros: <span className="font-medium text-green-600">+{fmt(summary.savingsContributions)}</span></p>
                 )}
               </div>
             </div>
@@ -220,8 +219,8 @@ export default function InsightsPage() {
             <p className={`text-sm font-medium ${savingsColor}`}>{savingsLabel}</p>
             {savingsRate < 20 && (
               <p className="text-xs text-gray-400 mt-1">
-                Para llegar al 20% deberías gastar máximo{" "}
-                <strong>{fmt(summary.monthlyIncome * 0.8)}</strong> en consumo este mes.
+                Para llegar al 20% no puedes gastar más de{" "}
+                <strong>{fmt(summary.monthlyIncome * 0.8)}</strong> este mes.
                 Llevas <strong>{fmt(summary.totalExpense - summary.savingsContributions)}</strong>.
               </p>
             )}
@@ -234,10 +233,10 @@ export default function InsightsPage() {
         <div className="mb-5">
           <h2 className="font-semibold text-gray-900 flex items-center gap-2">
             <Target className="w-5 h-5 text-blue-600" />
-            Distribución ideal: regla 50/30/20
+            ¿Cómo está repartida tu plata?
           </h2>
           <p className="text-xs text-gray-400 mt-1">
-            50% para necesidades · 30% para ocio · 20% para ahorro
+            La regla 50/30/20: mitad para lo que necesitas · menos del tercio para lo que quieres · el resto al ahorro
           </p>
         </div>
         <div className="space-y-5">
@@ -267,7 +266,7 @@ export default function InsightsPage() {
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-amber-500" />
-            Categorías a revisar este mes
+            Ojo con estos gastos
           </h2>
           <div className="space-y-3">
             {hormigaAlert && !dismissedAlerts.has("hormiga") && (
@@ -297,7 +296,7 @@ export default function InsightsPage() {
                   percent={a.percent}
                   tip={a.tip}
                   severity={a.severity}
-                  extra={a.prevAvg > 0 ? `Promedio anterior: ${fmt(a.prevAvg)}` : undefined}
+                  extra={a.prevAvg > 0 ? `Mes anterior: ${fmt(a.prevAvg)}` : undefined}
                   onDismiss={() => {
                     const next = new Set([...dismissedAlerts, a.category]);
                     setDismissedAlerts(next);
@@ -315,7 +314,7 @@ export default function InsightsPage() {
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <TrendingDown className="w-5 h-5 text-gray-500" />
-            ¿En qué estás gastando?
+            ¿En qué se está yendo la plata?
           </h2>
           <div className="bg-white rounded-2xl p-6 shadow-sm space-y-4">
             {expenseByCategory.map((c) => (
@@ -344,7 +343,7 @@ export default function InsightsPage() {
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Lightbulb className="w-5 h-5 text-amber-500" />
-            Recomendaciones para ti
+            Esto te conviene saber
           </h2>
           <div className="bg-white rounded-2xl p-6 shadow-sm">
             <ul className="space-y-3">
@@ -370,11 +369,11 @@ export default function InsightsPage() {
         </section>
       )}
 
-      {/* Estrategias de ahorro */}
+      {/* Trucos de ahorro */}
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <PiggyBank className="w-5 h-5 text-green-600" />
-          Estrategias de ahorro
+          Trucos para que la plata rinda más
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {SAVING_STRATEGIES.map((s) => (
@@ -387,7 +386,7 @@ export default function InsightsPage() {
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <Wallet className="w-5 h-5 text-blue-600" />
-          Cómo controlar tus gastos
+          Para que no se te escape ni un peso
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {EXPENSE_TIPS.map((s) => (
@@ -396,11 +395,11 @@ export default function InsightsPage() {
         </div>
       </section>
 
-      {/* Hábitos de deuda */}
+      {/* Deudas */}
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <CreditCard className="w-5 h-5 text-red-500" />
-          Manejo inteligente de deudas
+          Con las deudas hay que ser vivo
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {DEBT_TIPS.map((s) => (
@@ -432,10 +431,11 @@ function InfoTooltip({ text }: { text: string }) {
         onMouseEnter={() => setVisible(true)}
         onMouseLeave={() => setVisible(false)}
         onClick={() => setVisible((v) => !v)}
-        className="p-1 text-gray-300 hover:text-gray-500 transition-colors rounded"
+        className="w-5 h-5 rounded-full bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 border border-green-200 flex items-center justify-center text-xs font-bold transition-colors"
         type="button"
+        aria-label="¿Cómo se calcula?"
       >
-        <Info className="w-4 h-4" />
+        ?
       </button>
       {visible && (
         <div className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 bg-gray-900 text-white text-xs rounded-xl p-3 shadow-xl leading-relaxed">
@@ -483,37 +483,37 @@ function AlertCard({ icon: Icon, label, amount, percent, tip, severity, extra, o
 const SAVING_STRATEGIES = [
   {
     title: "Págate primero",
-    desc: 'Transfiere el 20% de tu ingreso el día de pago antes de gastar. Así ahorras sin esfuerzo porque el dinero ya no está disponible.',
+    desc: "El día que te paguen, separa el ahorro antes de gastar. Si el dinero ya no está a la vista, no lo gastas.",
     icon: PiggyBank,
     color: "#22c55e",
   },
   {
-    title: "Regla de las 24 horas",
-    desc: "Antes de comprar algo no esencial, espera 24 horas. Reduce las compras impulsivas hasta en un 40%.",
+    title: "La regla de las 24 horas",
+    desc: "Antes de comprar algo que no necesitas, espera un día. Si al otro día todavía lo quieres, cómpralo. Si no, te ahorraste el gasto.",
     icon: Clock,
     color: "#f59e0b",
   },
   {
     title: "Fondo de emergencia",
-    desc: "Meta: 3 a 6 meses de tus gastos fijos ahorrados. Te evita endeudarte ante imprevistos médicos, mecánicos o de trabajo.",
+    desc: "Junta entre 3 y 6 meses de tus gastos fijos. Para el día que se dañe el carro, haya un médico o se presente cualquier imprevisto.",
     icon: ShieldCheck,
     color: "#8b5cf6",
   },
   {
     title: "Presupuesto semanal",
-    desc: "Divide tu dinero libre mensual entre 4 semanas. Es más fácil controlar un presupuesto semanal que uno mensual.",
+    desc: "Divide tu plata libre mensual en 4 semanas. Es más fácil no gastar de más cuando el límite es semanal y no mensual.",
     icon: Target,
     color: "#3b82f6",
   },
   {
     title: "Compras a granel",
-    desc: "En mercado y artículos de aseo, comprar en cantidad reduce el costo por unidad hasta un 30%. Compara precio por gramo.",
+    desc: "En mercado y aseo, comprar en cantidad baja el precio por unidad hasta un 30%. Siempre mira el precio por gramo.",
     icon: ShoppingCart,
     color: "#06b6d4",
   },
   {
-    title: "Elimina suscripciones",
-    desc: "Revisa cada mes qué suscripciones tienes activas (streaming, apps, membresías). Cancela las que no usas al menos 2 veces por semana.",
+    title: "Revisar suscripciones",
+    desc: "Una vez al mes, mira qué suscripciones tienes activas. Cancela las que no usas mínimo dos veces por semana.",
     icon: XCircle,
     color: "#ef4444",
   },
@@ -522,37 +522,37 @@ const SAVING_STRATEGIES = [
 const EXPENSE_TIPS = [
   {
     title: "Lista antes de comprar",
-    desc: "Ir al mercado con lista cerrada reduce el gasto promedio un 23%. Nunca vayas con hambre.",
+    desc: "Al mercado con la lista cerrada y sin hambre. Esas dos reglas pueden bajar hasta un 20% lo que gastas cada quincena.",
     icon: BookOpen,
     color: "#22c55e",
   },
   {
-    title: "Revisa gastos hormiga",
-    desc: "Café, meriendas, apps pequeñas: suman más de lo que crees. Lleva un registro de todo lo que pagas con efectivo.",
+    title: "Los gastos hormiga",
+    desc: "El café, la merienda, la app de $5.000: todo eso suma. Lleva la cuenta de lo que pagas en efectivo o sin pensar.",
     icon: Coffee,
     color: "#f59e0b",
   },
   {
     title: "Transporte inteligente",
-    desc: "Evalúa abonos mensuales de transporte vs pago por viaje. En muchas ciudades el abono ahorra entre 20% y 35%.",
+    desc: "Compara lo que pagas por viaje vs un abono mensual. En muchas ciudades el abono ahorra entre el 20% y el 35%.",
     icon: Bus,
     color: "#3b82f6",
   },
   {
     title: "Cocina en casa",
-    desc: "Comer fuera cuesta en promedio 4 veces más que cocinar. Planear el menú semanal reduce también el desperdicio de alimentos.",
+    desc: "Comer afuera cuesta en promedio 4 veces más que cocinar. Planear el menú de la semana también reduce lo que se daña en la nevera.",
     icon: ShoppingCart,
     color: "#8b5cf6",
   },
   {
-    title: "Ocio con presupuesto fijo",
-    desc: "Asigna un monto fijo mensual para entretenimiento y respétalo. Busca alternativas gratuitas: parques, eventos locales, bibliotecas.",
+    title: "Ocio con tope fijo",
+    desc: "Ponle un monto fijo mensual al entretenimiento y respétalo. Hay mucho ocio gratuito: parques, eventos y planes sin costo.",
     icon: MapPin,
     color: "#06b6d4",
   },
   {
     title: "Compara antes de pagar",
-    desc: "Para compras mayores a $50.000, busca al menos 3 precios antes de decidir. Apps de comparación y grupos de Facebook de segunda mano ayudan.",
+    desc: "Para compras de más de $50.000, busca mínimo tres precios antes de decidir. El precio más barato no siempre es el primero que ves.",
     icon: TrendingUp,
     color: "#ef4444",
   },
@@ -561,37 +561,37 @@ const EXPENSE_TIPS = [
 const DEBT_TIPS = [
   {
     title: "Método avalancha",
-    desc: "Paga el mínimo a todas las deudas y todo el excedente a la de mayor interés. Reduces el costo total de la deuda significativamente.",
+    desc: "Paga el mínimo a todas las deudas y todo lo que sobre mándalo a la de mayor interés. Así reduces lo que pagas en total.",
     icon: TrendingDown,
     color: "#ef4444",
   },
   {
     title: "Método bola de nieve",
-    desc: "Paga primero la deuda más pequeña. Da motivación rápida y libera cuotas para atacar las siguientes.",
+    desc: "Paga primero la deuda más pequeña. Te quita un peso de encima rápido y te deja con más plata para atacar las siguientes.",
     icon: Repeat,
     color: "#f59e0b",
   },
   {
-    title: "No uses deuda para gastos",
-    desc: "Reserva el crédito para activos o emergencias reales. Financiar vacaciones o ropa con tarjeta puede costarte el doble.",
+    title: "Deuda no es para gastos",
+    desc: "El crédito es para activos o emergencias reales, no para vacaciones ni ropa. Financiar eso con tarjeta puede costarte el doble.",
     icon: CreditCard,
     color: "#8b5cf6",
   },
   {
-    title: "Negocia las tasas",
-    desc: "Si llevas más de 6 meses pagando puntual, llama al banco y pide reducción de tasa. Muchos bancos aceptan si el cliente tiene buen historial.",
+    title: "Negocia la tasa",
+    desc: "Si llevas más de 6 meses pagando puntual, llama al banco y pide que te bajen la tasa. Muchos aceptan si tienes buen historial.",
     icon: CheckCircle,
     color: "#22c55e",
   },
   {
-    title: "Consolida deudas",
-    desc: "Si tienes varias cuotas pequeñas, un crédito de consolidación a menor tasa puede reducir tu pago mensual total.",
+    title: "Consolida lo que debes",
+    desc: "Si tienes varias cuotas pequeñas, un crédito de consolidación a menor tasa puede bajar lo que pagas en total cada mes.",
     icon: Wallet,
     color: "#3b82f6",
   },
   {
-    title: "Evita mínimos en tarjeta",
-    desc: "Pagar solo el mínimo de una tarjeta de crédito puede extender la deuda 5 años. Paga siempre el total si puedes.",
+    title: "Nunca pagues solo el mínimo",
+    desc: "Pagar solo el mínimo de una tarjeta puede estirar la deuda 5 años. Paga el total siempre que puedas.",
     icon: AlertTriangle,
     color: "#06b6d4",
   },

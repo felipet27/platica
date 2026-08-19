@@ -9,13 +9,19 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     orientation: "portrait",
     background_color: "#ffffff",
-    theme_color: "#22c55e",
+    theme_color: "#16a34a",
     icons: [
+      {
+        src: "/icon.svg",
+        sizes: "any",
+        type: "image/svg+xml",
+        purpose: "any",
+      },
       {
         src: "/api/icons/192",
         sizes: "192x192",
         type: "image/png",
-        purpose: "maskable",
+        purpose: "any",
       },
       {
         src: "/api/icons/512",

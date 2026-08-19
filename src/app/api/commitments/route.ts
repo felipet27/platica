@@ -22,10 +22,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const { name, amount, type, incomeType, frequency, category, payDay, totalInstallments } = await req.json();
+  const { name, amount, type, expenseType, incomeType, frequency, category, payDay, totalInstallments, month } = await req.json();
   if (!name || !amount || !type || !category) {
     return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 });
   }
+
+  const isVariableExpense = type === "expense" && expenseType === "variable";
 
   await connectDB();
   const commitment = await Commitment.create({
@@ -33,10 +35,12 @@ export async function POST(req: NextRequest) {
     name,
     amount: parseFloat(amount),
     type,
+    ...(type === "expense" ? { expenseType: expenseType ?? "fixed" } : {}),
     ...(type === "income" ? { incomeType: incomeType ?? "fixed", frequency: frequency ?? "monthly" } : {}),
     category,
-    ...(payDay ? { payDay: parseInt(payDay) } : {}),
-    ...(totalInstallments ? { totalInstallments: parseInt(totalInstallments), installmentsPaid: 0 } : {}),
+    ...(isVariableExpense && month ? { month } : {}),
+    ...(!isVariableExpense && payDay ? { payDay: parseInt(payDay) } : {}),
+    ...(!isVariableExpense && totalInstallments ? { totalInstallments: parseInt(totalInstallments), installmentsPaid: 0 } : {}),
   });
 
   return NextResponse.json(commitment, { status: 201 });

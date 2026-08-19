@@ -22,7 +22,7 @@ export function PageInfoTooltip({ text }: { text: string }) {
       <button
         type="button"
         onClick={() => setVisible((v) => !v)}
-        className="w-5 h-5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-400 hover:text-gray-600 flex items-center justify-center text-xs font-bold transition-colors"
+        className="w-5 h-5 rounded-full bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 border border-green-200 flex items-center justify-center text-xs font-bold transition-colors"
         aria-label="¿Qué es esta sección?"
       >
         ?

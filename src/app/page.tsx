@@ -2,14 +2,14 @@ import Link from "next/link";
 import {
   TrendingUp,
   TrendingDown,
-  Repeat2,
-  PiggyBank,
-  Lightbulb,
   CheckCircle2,
   Clock,
-  BarChart3,
   ArrowRight,
+  Receipt,
+  Lightbulb,
+  ShieldCheck,
 } from "lucide-react";
+import { PlaticaLogo } from "@/components/ui/PlaticaLogo";
 
 export default function LandingPage() {
   return (
@@ -17,7 +17,7 @@ export default function LandingPage() {
 
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
-        <span className="text-2xl font-bold text-green-700">Platíca</span>
+        <PlaticaLogo size="sm" />
         <div className="flex gap-3">
           <Link
             href="/login"
@@ -40,19 +40,20 @@ export default function LandingPage() {
           Gratis · Sin tarjeta · Sin límites
         </span>
         <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-5 leading-tight">
-          Controla tus finanzas,<br />
-          <span className="text-green-600">construye tu futuro</span>
+          ¿Cómo vamos con esa platíca?<br />
+          <span className="text-green-600">Es hora de organizar las cuentas.</span>
         </h1>
         <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-          Registra tus compromisos fijos, visualiza en qué gastas y recibe
-          consejos personalizados para ahorrar más cada mes.
+          Tu tablero de control financiero. Visualiza tus compromisos, ajusta tus hábitos
+          y haz que la platíca rinda mes a mes.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/register"
-            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-green-600 text-white text-base font-semibold rounded-xl hover:bg-green-700 transition-colors shadow-lg"
+            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 text-white text-base font-semibold rounded-xl transition-colors shadow-lg hover:opacity-90"
+            style={{ backgroundColor: "#16a34a" }}
           >
-            Comenzar gratis
+            Empezar a organizar mi platíca
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
@@ -83,7 +84,7 @@ export default function LandingPage() {
             <div className="w-36 bg-white border-r border-gray-100 p-3 shrink-0 hidden sm:block">
               <p className="text-sm font-bold text-green-700 mb-4 px-2">Platíca</p>
               {[
-                { label: "Dashboard", active: true },
+                { label: "El resumen", active: true },
                 { label: "Compromisos", active: false },
                 { label: "Transacciones", active: false },
                 { label: "Ahorros", active: false },
@@ -92,9 +93,7 @@ export default function LandingPage() {
                 <div
                   key={item.label}
                   className={`text-xs px-2 py-1.5 rounded-lg mb-1 font-medium ${
-                    item.active
-                      ? "bg-green-50 text-green-700"
-                      : "text-gray-400"
+                    item.active ? "bg-green-50 text-green-700" : "text-gray-400"
                   }`}
                 >
                   {item.label}
@@ -121,7 +120,7 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* KPIs + compromisos */}
+              {/* KPIs */}
               <div className="grid grid-cols-2 gap-2 mb-3">
                 <div className="bg-white rounded-xl p-2.5 shadow-sm">
                   <p className="text-xs text-gray-400">Compromisos</p>
@@ -170,28 +169,30 @@ export default function LandingPage() {
         </p>
       </section>
 
-      {/* Features — lo que realmente existe */}
+      {/* Beneficios */}
       <section className="px-6 py-16 max-w-6xl mx-auto">
         <h2 className="text-2xl font-bold text-gray-900 text-center mb-3">
-          Todo lo que necesitas para tus finanzas
+          Diseñado para que tú entiendas tu plata
         </h2>
-        <p className="text-gray-500 text-center mb-10 max-w-xl mx-auto text-sm">
-          Sin complicaciones. Registra, visualiza y mejora.
+        <p className="text-gray-500 text-center mb-12 max-w-xl mx-auto text-sm">
+          Sin términos financieros complicados. Sin trucos. Solo información clara para que tomes mejores decisiones.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {FEATURES.map(({ icon: Icon, title, desc, color }) => (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {BENEFITS.map(({ icon: Icon, title, desc, color, bg }) => (
             <div
               key={title}
-              className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow"
+              className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-4"
             >
               <div
-                className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
-                style={{ backgroundColor: `${color}18` }}
+                className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                style={{ backgroundColor: bg }}
               >
-                <Icon className="w-5 h-5" style={{ color }} />
+                <Icon className="w-6 h-6" style={{ color }} />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2 text-sm">{title}</h3>
-              <p className="text-gray-500 text-sm leading-relaxed">{desc}</p>
+              <div>
+                <h3 className="font-bold text-gray-900 mb-2">{title}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{desc}</p>
+              </div>
             </div>
           ))}
         </div>
@@ -199,7 +200,7 @@ export default function LandingPage() {
 
       {/* CTA final */}
       <section className="px-6 py-16 text-center">
-        <div className="bg-green-600 rounded-3xl p-10 max-w-2xl mx-auto shadow-xl">
+        <div className="rounded-3xl p-10 max-w-2xl mx-auto shadow-xl" style={{ backgroundColor: "#16a34a" }}>
           <h2 className="text-2xl font-bold text-white mb-3">
             Empieza a controlar tu dinero hoy
           </h2>
@@ -229,41 +230,26 @@ export default function LandingPage() {
   );
 }
 
-const FEATURES = [
+const BENEFITS = [
   {
-    icon: Repeat2,
-    title: "Compromisos fijos del mes",
-    desc: "Registra arriendo, servicios, préstamos y cualquier gasto fijo. Márcalos como pagados con un clic y ve cuánto te queda libre.",
-    color: "#8b5cf6",
-  },
-  {
-    icon: TrendingUp,
-    title: "Balance en tiempo real",
-    desc: "Ve de un vistazo cuánto entraste, cuánto saliste y cuál es tu balance del mes. Con barra visual para saber qué tan bien vas.",
-    color: "#22c55e",
-  },
-  {
-    icon: BarChart3,
-    title: "Historial de 6 meses",
-    desc: "Gráficas de ingresos vs gastos mes a mes para identificar tendencias y meses con déficit antes de que sea tarde.",
-    color: "#3b82f6",
-  },
-  {
-    icon: PiggyBank,
-    title: "Planes de ahorro",
-    desc: "Crea metas de ahorro con fecha objetivo. El sistema te avisa si tu aporte mensual no alcanza para llegar a tiempo.",
-    color: "#f59e0b",
+    icon: Receipt,
+    title: "Mapea tus gastos sin enredos",
+    desc: "Registra tus compromisos fijos y descubre a dónde se va cada peso. Sin términos complicados, pura claridad visual.",
+    color: "#16a34a",
+    bg: "#dcfce7",
   },
   {
     icon: Lightbulb,
-    title: "Consejos personalizados",
-    desc: "Análisis de tus gastos por categoría, regla 50/30/20, estrategias de ahorro y manejo inteligente de deudas.",
-    color: "#f97316",
+    title: "Optimización y hábitos",
+    desc: "Recibe consejos hechos a tu medida. Te mostramos los datos precisos para que tú tomes el control de tu futuro.",
+    color: "#f59e0b",
+    bg: "#fef3c7",
   },
   {
-    icon: TrendingDown,
-    title: "Gastos por categoría",
-    desc: "Mercado, transporte, entretenimiento y más. Identifica en qué categoría estás gastando de más cada mes.",
-    color: "#ef4444",
+    icon: ShieldCheck,
+    title: "Nosotros guiamos, tú decides",
+    desc: "No tocamos tu dinero, te damos la tecnología para que lo administres con inteligencia.",
+    color: "#3b82f6",
+    bg: "#dbeafe",
   },
 ];

@@ -105,7 +105,7 @@ export default function TransactionsPage() {
       <div>
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-bold text-gray-900">Transacciones</h1>
-          <PageInfoTooltip text="Historial completo de todos tus movimientos de dinero: ingresos y gastos. Filtra por mes, tipo o categoría para analizar cualquier período. Cada transacción que registras alimenta el balance, los gráficos y los consejos del Dashboard." />
+          <PageInfoTooltip text="Historial completo de todos tus movimientos de dinero: ingresos y gastos. Filtra por mes, tipo o categoría para analizar cualquier período. Cada transacción que registras alimenta el balance, los gráficos y los consejos de El resumen." />
         </div>
         <p className="text-gray-500 text-sm mt-1">{total} transacciones en total</p>
       </div>

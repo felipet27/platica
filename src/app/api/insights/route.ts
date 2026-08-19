@@ -125,7 +125,7 @@ export async function GET() {
     if (incomeCommitmentsCount > 0) {
       savingsTips.push("Tienes ingresos fijos configurados pero aún no has registrado ninguno como transacción este mes. Regístralos cuando los recibas para ver el análisis.");
     } else {
-      savingsTips.push("No tienes ingresos registrados este mes. Agrégalos desde el Dashboard para ver tu tasa de ahorro y análisis financiero.");
+      savingsTips.push("No tienes ingresos registrados este mes. Agrégalos desde El resumen para ver tu tasa de ahorro y análisis financiero.");
     }
   } else if (balance < 0) {
     savingsTips.push(`Este mes estás en déficit: tus gastos superan tus ingresos en $${Math.abs(balance).toLocaleString("es-CO")}. Identifica los 2 gastos más altos y redúcelos.`);

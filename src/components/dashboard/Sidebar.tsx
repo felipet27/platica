@@ -14,9 +14,10 @@ import {
   X,
   Settings,
 } from "lucide-react";
+import { PlaticaLogo } from "@/components/ui/PlaticaLogo";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "El resumen" },
   { href: "/commitments", icon: Repeat2, label: "Compromisos" },
   { href: "/transactions", icon: ArrowLeftRight, label: "Transacciones" },
   { href: "/savings", icon: PiggyBank, label: "Ahorros" },
@@ -40,7 +41,7 @@ export default function Sidebar({ user, open, onClose }: SidebarProps) {
       }`}
     >
       <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-        <span className="text-2xl font-bold text-green-700">Platíca</span>
+        <PlaticaLogo size="sm" />
         <button
           onClick={onClose}
           className="md:hidden p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
