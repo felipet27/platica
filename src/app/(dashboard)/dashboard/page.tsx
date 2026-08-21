@@ -35,6 +35,7 @@ async function getDashboardData(userId: string) {
     activeCommitments,
     paidCommitmentsAgg,
     incomeByCategoryAgg,
+    savingsContributionsAgg,
   ] = await Promise.all([
     Promise.all(
       months.map(async ({ start, end, label }) => {
@@ -104,6 +105,17 @@ async function getDashboardData(userId: string) {
       { $group: { _id: "$category", total: { $sum: "$amount" } } },
       { $sort: { total: -1 } },
     ]),
+    Transaction.aggregate([
+      {
+        $match: {
+          userId: userOid,
+          type: "expense",
+          category: "Ahorro",
+          date: { $gte: monthStart, $lte: monthEnd },
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]),
   ]);
 
   const current = monthlySummaries[monthlySummaries.length - 1];
@@ -131,8 +143,11 @@ async function getDashboardData(userId: string) {
     };
   });
 
+  const monthlySavingsContributions: number = savingsContributionsAgg[0]?.total ?? 0;
+
   return {
     monthlySummaries,
+    monthlySavingsContributions,
     categoryBreakdown: categoryBreakdown.map((c) => ({ name: c._id, value: c.total })),
     prevCategoryBreakdown: prevCategoryBreakdownAgg.map((c) => ({ name: c._id, value: c.total })),
     recentTransactions: recentTransactions.map((t) => ({

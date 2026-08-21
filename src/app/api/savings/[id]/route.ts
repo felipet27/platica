@@ -14,6 +14,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   await connectDB();
 
   const updates: Record<string, unknown> = {};
+  const push: Record<string, unknown> = {};
+
   if (body.name !== undefined)               updates.name = body.name;
   if (body.category !== undefined)           updates.category = body.category;
   if (body.description !== undefined)        updates.description = body.description;
@@ -23,9 +25,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.currentAmount !== undefined)      updates.currentAmount = parseFloat(String(body.currentAmount));
   if (body.monthlyContribution !== undefined) updates.monthlyContribution = parseFloat(String(body.monthlyContribution));
 
+  if (body.contribution !== undefined) {
+    push.contributions = {
+      amount: parseFloat(String(body.contribution.amount)),
+      date: new Date(),
+      ...(body.contribution.note ? { note: body.contribution.note.trim() } : {}),
+    };
+  }
+
+  const mongoUpdate: Record<string, unknown> = {};
+  if (Object.keys(updates).length > 0) mongoUpdate.$set = updates;
+  if (Object.keys(push).length > 0) mongoUpdate.$push = push;
+
   const plan = await SavingsPlan.findOneAndUpdate(
     { _id: id, userId: session.user.id },
-    { $set: updates },
+    mongoUpdate,
     { new: true }
   );
 

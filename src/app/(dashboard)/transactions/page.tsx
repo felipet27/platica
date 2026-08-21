@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, Filter, X } from "lucide-react";
+import { PenLine, Trash2, Filter, X, CalendarDays } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { useSettings } from "@/contexts/SettingsContext";
 import { CATEGORIES } from "@/lib/categories";
@@ -30,7 +30,6 @@ const EMPTY_FORM = {
   amount: "",
   category: "",
   description: "",
-  tags: "",
   date: new Date().toISOString().slice(0, 10),
   commitmentId: "",
 };
@@ -81,7 +80,7 @@ export default function TransactionsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
-        tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+        tags: [],
         commitmentId: form.commitmentId || undefined,
       }),
     });
@@ -103,14 +102,23 @@ export default function TransactionsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-gray-900">Transacciones</h1>
-          <PageInfoTooltip text="Historial completo de todos tus movimientos de dinero: ingresos y gastos. Filtra por mes, tipo o categoría para analizar cualquier período. Cada transacción que registras alimenta el balance, los gráficos y los consejos de El resumen." />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-gray-900">Transacciones</h1>
+            <PageInfoTooltip text="Historial de todos tus movimientos. Anota aquí gastos del día a día, salidas, viajes — con la fecha real en que ocurrieron, aunque los registres después." />
+          </div>
+          <button
+            onClick={() => { setForm(EMPTY_FORM); setShowForm(true); }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm"
+          >
+            <PenLine className="w-4 h-4" />
+            Anotar movimiento
+          </button>
         </div>
-        <p className="text-gray-500 text-sm mt-1">{total} transacciones en total</p>
+        <p className="text-gray-500 text-sm mt-1">{total} movimientos en total</p>
       </div>
 
-      {/* Filters */}
+      {/* Filters — sin el botón "+" que estaba aquí antes */}
       <div className="flex items-center gap-3">
         <Filter className="w-4 h-4 text-gray-400" />
         {(["", "income", "expense"] as const).map((t) => (
@@ -128,11 +136,11 @@ export default function TransactionsPage() {
         ))}
       </div>
 
-      {/* Modal form */}
+      {/* Modal anotar movimiento */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-lg font-semibold text-gray-900 mb-5">Nueva transacción</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-5">Anotar movimiento</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="flex gap-2">
                 {(["expense", "income"] as const).map((t) => (
@@ -187,7 +195,7 @@ export default function TransactionsPage() {
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                  placeholder="Descripción de la transacción"
+                  placeholder="Ej: Cena en restaurante, gasolina, entrada al cine..."
                 />
               </div>
 
@@ -213,26 +221,19 @@ export default function TransactionsPage() {
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Etiquetas <span className="text-gray-400">(separadas por coma)</span></label>
-                <input
-                  type="text"
-                  value={form.tags}
-                  onChange={(e) => setForm({ ...form, tags: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                  placeholder="trabajo, personal, urgente"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <CalendarDays className="w-4 h-4 text-blue-500 shrink-0" />
+                  <span className="text-sm font-medium text-blue-800">¿Cuándo ocurrió realmente?</span>
+                </div>
                 <input
                   type="date"
                   required
                   value={form.date}
                   onChange={(e) => setForm({ ...form, date: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                  className="w-full px-3 py-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none text-sm text-gray-700"
                 />
+                <p className="text-xs text-blue-500 mt-1.5">Puedes cambiarlo si lo estás anotando después.</p>
               </div>
 
               <div className="flex gap-3 pt-2">
@@ -301,7 +302,7 @@ export default function TransactionsPage() {
             <table className="w-full min-w-[600px]">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  {["Descripción", "Categoría", "Fecha", "Etiquetas", "Monto", ""].map((h) => (
+                  {["Descripción", "Categoría", "Fecha", "Monto", ""].map((h) => (
                     <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                       {h}
                     </th>
@@ -318,13 +319,6 @@ export default function TransactionsPage() {
                       <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">{t.category}</span>
                     </td>
                     <td className="px-5 py-3.5 text-sm text-gray-500 whitespace-nowrap">{formatDate(t.date)}</td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex flex-wrap gap-1">
-                        {t.tags.map((tag) => (
-                          <span key={tag} className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{tag}</span>
-                        ))}
-                      </div>
-                    </td>
                     <td className="px-5 py-3.5 whitespace-nowrap">
                       <span className={`text-sm font-semibold ${t.type === "income" ? "text-green-600" : "text-red-500"}`}>
                         {t.type === "income" ? "+" : "-"}{fmt(t.amount)}

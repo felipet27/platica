@@ -21,6 +21,7 @@ import {
   Bell,
   AlertCircle,
   Trophy,
+  CalendarDays,
 } from "lucide-react";
 import {
   BarChart,
@@ -60,6 +61,7 @@ interface CommitmentItem {
 
 interface DashboardData {
   monthlySummaries: { month: string; income: number; expense: number; balance: number }[];
+  monthlySavingsContributions: number;
   categoryBreakdown: { name: string; value: number }[];
   prevCategoryBreakdown: { name: string; value: number }[];
   recentTransactions: {
@@ -246,6 +248,7 @@ export default function DashboardClient({
 }) {
   const {
     monthlySummaries,
+    monthlySavingsContributions,
     categoryBreakdown,
     prevCategoryBreakdown,
     recentTransactions,
@@ -277,11 +280,13 @@ export default function DashboardClient({
   }, []);
 
   const [payingId, setPayingId] = useState<string | null>(null);
-  const [varPayModal, setVarPayModal] = useState<{ commitment: CommitmentItem; amount: string } | null>(null);
+  const [payDateModal, setPayDateModal] = useState<{ commitment: CommitmentItem; date: string } | null>(null);
+  const [payDateSubmitting, setPayDateSubmitting] = useState(false);
+  const [varPayModal, setVarPayModal] = useState<{ commitment: CommitmentItem; amount: string; date: string } | null>(null);
   const [varPaySubmitting, setVarPaySubmitting] = useState(false);
 
-  async function payCommitment(c: CommitmentItem) {
-    setPayingId(c._id);
+  async function confirmPayCommitment(c: CommitmentItem, date: string) {
+    setPayDateSubmitting(true);
     await fetch("/api/transactions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -290,7 +295,7 @@ export default function DashboardClient({
         amount: c.amount,
         category: c.category,
         description: c.name,
-        date: new Date().toISOString().slice(0, 10),
+        date,
         commitmentId: c._id,
       }),
     });
@@ -306,7 +311,8 @@ export default function DashboardClient({
       });
     }
 
-    setPayingId(null);
+    setPayDateModal(null);
+    setPayDateSubmitting(false);
     router.refresh();
   }
 
@@ -323,7 +329,7 @@ export default function DashboardClient({
         amount,
         category: varPayModal.commitment.category,
         description: varPayModal.commitment.name,
-        date: new Date().toISOString().slice(0, 10),
+        date: varPayModal.date,
         commitmentId: varPayModal.commitment._id,
       }),
     });
@@ -338,7 +344,7 @@ export default function DashboardClient({
   const incomeCommitments = commitments.filter((c) => c.type === "income");
   const totalExpenseCommitments = expenseCommitments.reduce((s, c) => s + c.amount, 0);
   const paidCount = expenseCommitments.filter((c) => c.paid).length;
-  const libreEstimado = currentMonth.income - totalExpenseCommitments;
+  const libreEstimado = currentMonth.income - totalExpenseCommitments - monthlySavingsContributions;
 
   const spentPercent =
     currentMonth.income > 0
@@ -577,7 +583,7 @@ export default function DashboardClient({
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-sm text-gray-500">Libre estimado</span>
-              <InfoTooltip text="Tus ingresos del mes menos el total de tus compromisos fijos. Es el dinero disponible para gastos variables y ahorro." />
+              <InfoTooltip text="Tus ingresos del mes menos tus compromisos fijos y los aportes a ahorros que ya realizaste este mes." />
             </div>
           </div>
           <p className={`text-3xl font-bold ${libreEstimado >= 0 ? "text-gray-900" : "text-red-500"}`}>
@@ -585,7 +591,7 @@ export default function DashboardClient({
           </p>
           <p className="text-xs text-gray-400">
             {totalExpenseCommitments > 0
-              ? `Ingresos − compromisos (${fmt(totalExpenseCommitments)})`
+              ? `Ingresos − compromisos (${fmt(totalExpenseCommitments)})${monthlySavingsContributions > 0 ? ` − ahorros (${fmt(monthlySavingsContributions)})` : ""}`
               : "Configura compromisos para ver este cálculo"}
           </p>
         </div>
@@ -653,7 +659,7 @@ export default function DashboardClient({
                         </div>
                         {!c.paid && (
                           <button
-                            onClick={() => payCommitment(c)}
+                            onClick={() => setPayDateModal({ commitment: c, date: new Date().toISOString().slice(0, 10) })}
                             disabled={payingId === c._id}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap disabled:opacity-50"
                           >
@@ -715,7 +721,7 @@ export default function DashboardClient({
                               </span>
                               {!firstPaid && (
                                 <button
-                                  onClick={() => payCommitment(c)}
+                                  onClick={() => setPayDateModal({ commitment: c, date: new Date().toISOString().slice(0, 10) })}
                                   disabled={payingId === c._id}
                                   className="flex items-center gap-1 px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
                                 >
@@ -759,7 +765,7 @@ export default function DashboardClient({
                               </span>
                               {firstPaid && !secondPaid && (
                                 <button
-                                  onClick={() => payCommitment(c)}
+                                  onClick={() => setPayDateModal({ commitment: c, date: new Date().toISOString().slice(0, 10) })}
                                   disabled={payingId === c._id}
                                   className="flex items-center gap-1 px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
                                 >
@@ -785,7 +791,7 @@ export default function DashboardClient({
                           <p className="text-sm font-semibold text-green-600">{fmt(c.amount)}</p>
                           {!c.paid && (
                             <button
-                              onClick={() => payCommitment(c)}
+                              onClick={() => setPayDateModal({ commitment: c, date: new Date().toISOString().slice(0, 10) })}
                               disabled={payingId === c._id}
                               className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap disabled:opacity-50"
                             >
@@ -821,7 +827,7 @@ export default function DashboardClient({
                               <p className="text-xs text-gray-400">de {fmt(c.amount)}</p>
                             </div>
                             <button
-                              onClick={() => setVarPayModal({ commitment: c, amount: "" })}
+                              onClick={() => setVarPayModal({ commitment: c, amount: "", date: new Date().toISOString().slice(0, 10) })}
                               className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
                             >
                               <CreditCard className="w-3.5 h-3.5" />
@@ -1049,6 +1055,56 @@ export default function DashboardClient({
         </div>
       )}
 
+      {/* Modal confirmar fecha pago compromiso */}
+      {payDateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-lg font-semibold text-gray-900">Confirmar pago</h2>
+              <button onClick={() => setPayDateModal(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-5">
+              <span className="font-medium text-gray-700">{payDateModal.commitment.name}</span>
+              {" · "}{fmt(payDateModal.commitment.amount)}
+            </p>
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <CalendarDays className="w-4 h-4 text-blue-500 shrink-0" />
+                  <span className="text-sm font-medium text-blue-800">¿Cuándo ocurrió realmente?</span>
+                </div>
+                <input
+                  type="date"
+                  value={payDateModal.date}
+                  onChange={(e) => setPayDateModal({ ...payDateModal, date: e.target.value })}
+                  className="w-full px-3 py-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none text-sm text-gray-700"
+                />
+                <p className="text-xs text-blue-500 mt-1.5">Cambia la fecha si el pago fue en otro día.</p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPayDateModal(null)}
+                  className="flex-1 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 font-medium text-sm"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => confirmPayCommitment(payDateModal.commitment, payDateModal.date)}
+                  disabled={payDateSubmitting}
+                  className="flex-1 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-sm disabled:opacity-50 transition-colors"
+                >
+                  {payDateSubmitting ? "Guardando..." : "Confirmar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal registrar pago ingreso variable */}
       {varPayModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -1066,7 +1122,7 @@ export default function DashboardClient({
             </p>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Monto recibido hoy</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Monto recibido</label>
                 <MoneyInput
                   required
                   autoFocus
@@ -1075,6 +1131,19 @@ export default function DashboardClient({
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none text-lg font-semibold"
                   placeholder="0"
                 />
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <CalendarDays className="w-4 h-4 text-blue-500 shrink-0" />
+                  <span className="text-sm font-medium text-blue-800">¿Cuándo lo recibiste?</span>
+                </div>
+                <input
+                  type="date"
+                  value={varPayModal.date}
+                  onChange={(e) => setVarPayModal({ ...varPayModal, date: e.target.value })}
+                  className="w-full px-3 py-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none text-sm text-gray-700"
+                />
+                <p className="text-xs text-blue-500 mt-1.5">Cambia la fecha si el pago fue en otro día.</p>
               </div>
               <div className="flex gap-3">
                 <button

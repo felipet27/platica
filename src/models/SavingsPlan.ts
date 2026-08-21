@@ -1,5 +1,11 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
+export interface IContribution {
+  amount: number;
+  date: Date;
+  note?: string;
+}
+
 export interface ISavingsPlan extends Document {
   userId: mongoose.Types.ObjectId;
   name: string;
@@ -10,8 +16,18 @@ export interface ISavingsPlan extends Document {
   category: string;
   description?: string;
   isActive: boolean;
+  contributions: IContribution[];
   createdAt: Date;
 }
+
+const ContributionSchema = new Schema<IContribution>(
+  {
+    amount: { type: Number, required: true },
+    date: { type: Date, required: true },
+    note: { type: String, trim: true },
+  },
+  { _id: false }
+);
 
 const SavingsPlanSchema = new Schema<ISavingsPlan>(
   {
@@ -28,6 +44,7 @@ const SavingsPlanSchema = new Schema<ISavingsPlan>(
     },
     description: { type: String, trim: true },
     isActive: { type: Boolean, default: true },
+    contributions: { type: [ContributionSchema], default: [] },
   },
   { timestamps: true }
 );
