@@ -5,6 +5,22 @@ import { Plus, Pencil, Trash2, X, ChevronLeft, ChevronRight, Info, Building2, Ha
 import { useSettings } from "@/contexts/SettingsContext";
 import { PageInfoTooltip } from "@/components/ui/PageInfoTooltip";
 import { MoneyInput } from "@/components/ui/MoneyInput";
+import { PaymentReminderPrompt } from "@/components/dashboard/PaymentReminderPrompt";
+
+const REMINDER_PROMPT_SEEN = "platica_reminder_prompt_seen";
+
+// ¿Debemos ofrecer activar recordatorios? Solo una vez, si el navegador los
+// soporta y el usuario aún no ha decidido (permiso en estado "default").
+function shouldOfferReminder(): boolean {
+  if (typeof window === "undefined") return false;
+  if (localStorage.getItem(REMINDER_PROMPT_SEEN)) return false;
+  const supported =
+    "Notification" in window &&
+    "serviceWorker" in navigator &&
+    "PushManager" in window;
+  if (!supported) return false;
+  return Notification.permission === "default";
+}
 
 interface Commitment {
   _id: string;
@@ -64,6 +80,7 @@ export default function CommitmentsPage() {
   const [selectedMonth, setSelectedMonth] = useState(() => toYearMonth(new Date()));
   const [paymentModal, setPaymentModal] = useState<Commitment | null>(null);
   const [copied, setCopied] = useState(false);
+  const [reminderPrompt, setReminderPrompt] = useState<{ name: string; payDay: number } | null>(null);
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text).then(() => {
@@ -158,6 +175,14 @@ export default function CommitmentsPage() {
 
       setShowForm(false);
       fetchCommitments();
+
+      // Al crear (no editar) un compromiso con día de pago, ofrecemos activar
+      // los recordatorios push una sola vez, de forma amable.
+      const payDayNum = !isVariableExpense && form.payDay ? parseInt(form.payDay) : null;
+      if (!editing && payDayNum && shouldOfferReminder()) {
+        localStorage.setItem(REMINDER_PROMPT_SEEN, "true");
+        setReminderPrompt({ name: form.name, payDay: payDayNum });
+      }
     } catch {
       setFormError("Error de conexión. Verifica tu red e intenta de nuevo.");
     } finally {
@@ -561,6 +586,15 @@ export default function CommitmentsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Aviso amable para activar recordatorios */}
+      {reminderPrompt && (
+        <PaymentReminderPrompt
+          commitmentName={reminderPrompt.name}
+          payDay={reminderPrompt.payDay}
+          onClose={() => setReminderPrompt(null)}
+        />
       )}
 
       {/* Modal datos de pago */}
