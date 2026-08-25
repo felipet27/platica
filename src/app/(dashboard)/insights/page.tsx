@@ -148,10 +148,10 @@ export default function InsightsPage() {
           <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
           <p className="text-amber-800 text-sm flex-1">
             {summary.hasIncomeCommitments
-              ? <>Tienes ingresos fijos configurados pero aún no los has registrado este mes. Agrégalos desde el{" "}
-                  <Link href="/dashboard" className="underline font-medium">inicio</Link> cuando los recibas.</>
-              : <>Todavía no hay ingresos de este mes. Agrégalos desde el{" "}
-                  <Link href="/dashboard" className="underline font-medium">inicio</Link> para ver el análisis completo.</>
+              ? <>Tienes ingresos fijos configurados pero aún no los has registrado este mes. Agrégalos desde{" "}
+                  <Link href="/dashboard" className="underline font-medium">El resumen</Link> cuando los recibas.</>
+              : <>Todavía no hay ingresos de este mes. Agrégalos desde{" "}
+                  <Link href="/dashboard" className="underline font-medium">El resumen</Link> para ver el análisis completo.</>
             }
           </p>
           <button
