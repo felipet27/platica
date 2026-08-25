@@ -35,10 +35,14 @@ export function InstallBanner() {
       return;
     }
 
-    // Chrome / Edge / Samsung Browser en Android: esperamos el evento nativo
+    // Chrome / Edge / Samsung Browser en Android: esperamos el evento nativo.
+    // Chrome vuelve a disparar este evento al navegar entre secciones, así que
+    // guardamos el prompt siempre (para que el botón "Instalar" funcione) pero
+    // solo mostramos el banner una vez por sesión.
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
+      if (sessionStorage.getItem("platica_install_seen") === "true") return;
       setShow(true);
       sessionStorage.setItem("platica_install_seen", "true");
     };
