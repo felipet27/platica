@@ -1,4 +1,4 @@
-const CACHE = "platica-v1";
+const CACHE = "platica-v2";
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) =>
