@@ -15,7 +15,7 @@ const SIZES = {
 export function PlaticaLogo({
   variant = "full",
   size = "md",
-  textColor = "#111827",
+  textColor,
   className = "",
 }: Props) {
   const { iconPx, textCls, gapCls } = SIZES[size];
@@ -48,8 +48,10 @@ export function PlaticaLogo({
 
   const Wordmark = (
     <span
-      className={`font-bold tracking-tight leading-none select-none ${textCls}`}
-      style={{ color: textColor }}
+      className={`font-bold tracking-tight leading-none select-none ${textCls} ${
+        textColor ? "" : "text-gray-900"
+      }`}
+      style={textColor ? { color: textColor } : undefined}
     >
       Platíca
     </span>

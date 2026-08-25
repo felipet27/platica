@@ -13,7 +13,12 @@ export interface ICommitment extends Document {
   payDay?: number;
   totalInstallments?: number;
   installmentsPaid?: number;
-  month?: string; // "YYYY-MM", solo para gastos variables
+  month?: string;
+  paymentDetails?: {
+    entity?: string;
+    accountNumber?: string;
+    note?: string;
+  };
 }
 
 const CommitmentSchema = new Schema<ICommitment>(
@@ -31,6 +36,11 @@ const CommitmentSchema = new Schema<ICommitment>(
     totalInstallments: { type: Number, min: 1, default: null },
     installmentsPaid: { type: Number, min: 0, default: 0 },
     month: { type: String, default: null },
+    paymentDetails: {
+      entity: { type: String, default: null },
+      accountNumber: { type: String, default: null },
+      note: { type: String, default: null },
+    },
   },
   { timestamps: true }
 );

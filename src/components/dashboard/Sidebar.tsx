@@ -15,6 +15,7 @@ import {
   Settings,
 } from "lucide-react";
 import { PlaticaLogo } from "@/components/ui/PlaticaLogo";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const NAV_ITEMS = [
   { href: "/dashboard", icon: LayoutDashboard, label: "El resumen" },
@@ -42,13 +43,16 @@ export default function Sidebar({ user, open, onClose }: SidebarProps) {
     >
       <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
         <PlaticaLogo size="sm" />
-        <button
-          onClick={onClose}
-          className="md:hidden p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
-          aria-label="Cerrar menú"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <button
+            onClick={onClose}
+            className="md:hidden p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
+            aria-label="Cerrar menú"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">

@@ -11,8 +11,13 @@ import {
   Lightbulb,
   ChevronDown,
   ChevronUp,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { PageInfoTooltip } from "@/components/ui/PageInfoTooltip";
+import { CategoryManager } from "@/components/dashboard/CategoryManager";
+import { NotificationToggle } from "@/components/dashboard/NotificationToggle";
+import { DangerZone } from "@/components/dashboard/DangerZone";
 import { useState } from "react";
 
 // ─── Datos de la guía ────────────────────────────────────────────────────────
@@ -146,7 +151,7 @@ function GlossaryItem({ term, def }: { term: string; def: string }) {
 // ─── Página ───────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
-  const { currency, setCurrency } = useSettings();
+  const { currency, setCurrency, theme, setTheme } = useSettings();
 
   return (
     <div className="space-y-8 max-w-2xl">
@@ -199,6 +204,46 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Apariencia */}
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+          <Sun className="w-5 h-5 text-gray-400" />
+          <h2 className="font-semibold text-gray-900">Apariencia</h2>
+        </div>
+        <div className="p-6">
+          <p className="text-sm text-gray-500 mb-4">Elige cómo quieres ver la app.</p>
+          <div className="grid grid-cols-2 gap-3">
+            {([
+              { value: "light" as const, label: "Claro", icon: Sun },
+              { value: "dark" as const, label: "Oscuro", icon: Moon },
+            ]).map(({ value, label, icon: Icon }) => {
+              const active = theme === value;
+              return (
+                <button
+                  key={value}
+                  onClick={() => setTheme(value)}
+                  className={`flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl border-2 transition-all font-medium ${
+                    active
+                      ? "border-green-500 bg-green-50 text-green-700"
+                      : "border-gray-200 hover:border-gray-300 text-gray-600"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                  {active && <Check className="w-4 h-4" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Notificaciones */}
+      <NotificationToggle />
+
+      {/* Categorías propias */}
+      <CategoryManager />
 
       {/* Cómo funciona Platíca */}
       <div>
@@ -259,6 +304,9 @@ export default function SettingsPage() {
           ))}
         </div>
       </div>
+
+      {/* Zona de peligro */}
+      <DangerZone />
 
     </div>
   );

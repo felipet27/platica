@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Menu } from "lucide-react";
 import Sidebar from "./Sidebar";
 import { SettingsProvider } from "@/contexts/SettingsContext";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 interface Props {
   children: React.ReactNode;
@@ -35,6 +36,7 @@ export default function DashboardShell({ children, user }: Props) {
               <Menu className="w-5 h-5 text-gray-600" />
             </button>
             <span className="text-lg font-bold text-green-700">Platíca</span>
+            <ThemeToggle className="ml-auto" />
           </header>
 
           <main className="flex-1 p-4 md:p-8 overflow-y-auto">

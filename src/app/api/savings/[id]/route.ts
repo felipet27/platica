@@ -28,7 +28,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.contribution !== undefined) {
     push.contributions = {
       amount: parseFloat(String(body.contribution.amount)),
-      date: new Date(),
+      date: body.contribution.date ? new Date(body.contribution.date) : new Date(),
       ...(body.contribution.note ? { note: body.contribution.note.trim() } : {}),
     };
   }

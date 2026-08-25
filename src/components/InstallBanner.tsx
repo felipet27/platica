@@ -20,8 +20,9 @@ export function InstallBanner() {
 
     if (standalone) return; // Ya está instalada
 
-    const dismissed = localStorage.getItem("platica_install_dismissed") === "true";
-    if (dismissed) return;
+    // Solo se muestra una vez por sesión de login. La marca se limpia al iniciar
+    // sesión (ver login page), así reaparece una sola vez tras un nuevo login.
+    if (sessionStorage.getItem("platica_install_seen") === "true") return;
 
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
     const safari = /safari/i.test(navigator.userAgent) && !/chrome|crios|fxios|edgios/i.test(navigator.userAgent);
@@ -30,6 +31,7 @@ export function InstallBanner() {
       // iOS Safari: instrucciones manuales
       setIsIos(true);
       setShow(true);
+      sessionStorage.setItem("platica_install_seen", "true");
       return;
     }
 
@@ -38,6 +40,7 @@ export function InstallBanner() {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setShow(true);
+      sessionStorage.setItem("platica_install_seen", "true");
     };
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
@@ -52,7 +55,7 @@ export function InstallBanner() {
   }
 
   function dismiss() {
-    localStorage.setItem("platica_install_dismissed", "true");
+    // La marca "seen" ya se puso al mostrarse; aquí solo ocultamos.
     setShow(false);
   }
 

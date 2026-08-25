@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const { name, amount, type, expenseType, incomeType, frequency, category, payDay, totalInstallments, month } = await req.json();
+  const { name, amount, type, expenseType, incomeType, frequency, category, payDay, totalInstallments, month, paymentDetails } = await req.json();
   if (!name || !amount || !type || !category) {
     return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 });
   }
@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
     ...(isVariableExpense && month ? { month } : {}),
     ...(!isVariableExpense && payDay ? { payDay: parseInt(payDay) } : {}),
     ...(!isVariableExpense && totalInstallments ? { totalInstallments: parseInt(totalInstallments), installmentsPaid: 0 } : {}),
+    ...(paymentDetails ? { paymentDetails } : {}),
   });
 
   return NextResponse.json(commitment, { status: 201 });

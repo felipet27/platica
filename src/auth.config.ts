@@ -32,6 +32,7 @@ export const authConfig: NextAuthConfig = {
         pathname === "/login" ||
         pathname === "/register" ||
         pathname.startsWith("/api/auth") ||
+        pathname.startsWith("/api/cron/") ||
         pathname === "/manifest.webmanifest" ||
         pathname.startsWith("/api/icons/") ||
         pathname === "/sw.js";

@@ -28,6 +28,14 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+        {/* Aplica el tema guardado antes de pintar para evitar parpadeo */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(localStorage.getItem('platica_theme')==='dark'){document.documentElement.classList.add('dark')}}catch(e){}`,
+          }}
+        />
+      </head>
       <body>
         {children}
         <SwRegister />

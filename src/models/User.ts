@@ -8,7 +8,10 @@ export interface IUser extends Document {
   image?: string;
   twoFactorEnabled: boolean;
   twoFactorSecret?: string;
-  preferences?: { currency?: string };
+  preferences?: {
+    currency?: string;
+    customCategories?: { income?: string[]; expense?: string[] };
+  };
   loginAttempts: number;
   lockUntil?: Date | null;
   createdAt: Date;
@@ -24,6 +27,10 @@ const UserSchema = new Schema<IUser>(
     twoFactorSecret: { type: String, select: false },
     preferences: {
       currency: { type: String, default: "COP" },
+      customCategories: {
+        income: { type: [String], default: [] },
+        expense: { type: [String], default: [] },
+      },
     },
     loginAttempts: { type: Number, default: 0 },
     lockUntil: { type: Date, default: null },

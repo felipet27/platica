@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { PageInfoTooltip } from "@/components/ui/PageInfoTooltip";
+import { BudgetManager } from "@/components/dashboard/BudgetManager";
 
 interface Alert {
   category: string;
@@ -337,6 +338,9 @@ export default function InsightsPage() {
           </div>
         </section>
       )}
+
+      {/* Topes por categoría */}
+      <BudgetManager />
 
       {/* Recomendaciones personalizadas */}
       {savingsTips.filter((_, i) => !dismissedTips.has(i)).length > 0 && (

@@ -7,10 +7,10 @@ import { startOfMonth, endOfMonth, subMonths } from "date-fns";
 import mongoose from "mongoose";
 import DashboardClient from "@/components/dashboard/DashboardClient";
 
-async function getDashboardData(userId: string) {
+async function getDashboardData(userId: string, refDate: Date) {
   await connectDB();
 
-  const now = new Date();
+  const now = refDate;
   const monthStart = startOfMonth(now);
   const monthEnd = endOfMonth(now);
 
@@ -140,6 +140,13 @@ async function getDashboardData(userId: string) {
       payDay: c.payDay ?? undefined,
       totalInstallments: c.totalInstallments ?? undefined,
       installmentsPaid: c.installmentsPaid ?? 0,
+      paymentDetails: c.paymentDetails
+        ? {
+            entity: c.paymentDetails.entity ?? undefined,
+            accountNumber: c.paymentDetails.accountNumber ?? undefined,
+            note: c.paymentDetails.note ?? undefined,
+          }
+        : undefined,
     };
   });
 
@@ -175,8 +182,30 @@ async function getDashboardData(userId: string) {
   };
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string }>;
+}) {
   const session = await auth();
-  const data = await getDashboardData(session!.user!.id!);
-  return <DashboardClient data={data} userName={session!.user!.name ?? "Usuario"} />;
+  const { month } = await searchParams;
+
+  // month viene como "YYYY-MM"; usamos el día 15 al mediodía para evitar
+  // desbordes de zona horaria al calcular inicio/fin de mes.
+  const validMonth = month && /^\d{4}-\d{2}$/.test(month) ? month : null;
+  const refDate = validMonth ? new Date(`${validMonth}-15T12:00:00`) : new Date();
+
+  const now = new Date();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const selectedMonth = validMonth ?? currentMonthStr;
+
+  const data = await getDashboardData(session!.user!.id!, refDate);
+  return (
+    <DashboardClient
+      data={data}
+      userName={session!.user!.name ?? "Usuario"}
+      selectedMonth={selectedMonth}
+      isCurrentMonth={selectedMonth === currentMonthStr}
+    />
+  );
 }

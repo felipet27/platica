@@ -14,12 +14,30 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type");
   const category = searchParams.get("category");
+  const search = searchParams.get("search");
+  const from = searchParams.get("from");
+  const to = searchParams.get("to");
   const limit = parseInt(searchParams.get("limit") ?? "50");
   const page = parseInt(searchParams.get("page") ?? "1");
 
   const filter: Record<string, unknown> = { userId: session.user.id };
   if (type) filter.type = type;
   if (category) filter.category = category;
+  if (search) {
+    // Escapar caracteres especiales de regex para búsqueda literal
+    const safe = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filter.description = { $regex: safe, $options: "i" };
+  }
+  if (from || to) {
+    const dateFilter: Record<string, Date> = {};
+    if (from) dateFilter.$gte = new Date(from);
+    if (to) {
+      const end = new Date(to);
+      end.setHours(23, 59, 59, 999);
+      dateFilter.$lte = end;
+    }
+    filter.date = dateFilter;
+  }
 
   const [transactions, total] = await Promise.all([
     Transaction.find(filter)

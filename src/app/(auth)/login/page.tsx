@@ -44,6 +44,8 @@ export default function LoginPage() {
         setError("Email o contraseña incorrectos.");
       }
     } else {
+      // Nuevo login: permite que el banner de instalar aparezca una vez.
+      sessionStorage.removeItem("platica_install_seen");
       router.push("/dashboard");
     }
 
@@ -52,6 +54,7 @@ export default function LoginPage() {
 
   async function handleGoogle() {
     setGoogleLoading(true);
+    sessionStorage.removeItem("platica_install_seen");
     await signIn("google", { callbackUrl: "/dashboard" });
   }
 

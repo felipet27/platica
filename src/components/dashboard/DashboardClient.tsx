@@ -22,6 +22,13 @@ import {
   AlertCircle,
   Trophy,
   CalendarDays,
+  Building2,
+  Hash,
+  Copy,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
 } from "lucide-react";
 import {
   BarChart,
@@ -57,6 +64,11 @@ interface CommitmentItem {
   payDay?: number;
   totalInstallments?: number;
   installmentsPaid?: number;
+  paymentDetails?: {
+    entity?: string;
+    accountNumber?: string;
+    note?: string;
+  };
 }
 
 interface DashboardData {
@@ -242,9 +254,13 @@ function OnboardingChecklist({
 export default function DashboardClient({
   data,
   userName,
+  selectedMonth,
+  isCurrentMonth,
 }: {
   data: DashboardData;
   userName: string;
+  selectedMonth: string;
+  isCurrentMonth: boolean;
 }) {
   const {
     monthlySummaries,
@@ -284,6 +300,15 @@ export default function DashboardClient({
   const [payDateSubmitting, setPayDateSubmitting] = useState(false);
   const [varPayModal, setVarPayModal] = useState<{ commitment: CommitmentItem; amount: string; date: string } | null>(null);
   const [varPaySubmitting, setVarPaySubmitting] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [paymentInfo, setPaymentInfo] = useState<CommitmentItem | null>(null);
+
+  function copyText(text: string, field: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    });
+  }
 
   async function confirmPayCommitment(c: CommitmentItem, date: string) {
     setPayDateSubmitting(true);
@@ -356,8 +381,16 @@ export default function DashboardClient({
       ? Math.max(0, ((currentMonth.income - currentMonth.expense) / currentMonth.income) * 100)
       : 0;
 
-  const monthLabel = new Intl.DateTimeFormat("es-CO", { month: "long", year: "numeric" }).format(new Date());
+  const [selYear, selMonth] = selectedMonth.split("-").map(Number);
+  const monthLabel = new Intl.DateTimeFormat("es-CO", { month: "long", year: "numeric" }).format(new Date(selYear, selMonth - 1, 15));
   const currentMonthLabel = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+
+  function shiftMonth(delta: number) {
+    const d = new Date(selYear, selMonth - 1 + delta, 15);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }
+  const prevMonthHref = `/dashboard?month=${shiftMonth(-1)}`;
+  const nextMonthHref = `/dashboard?month=${shiftMonth(1)}`;
 
   const barColor = spentPercent > 90 ? "bg-red-500" : spentPercent > 70 ? "bg-amber-400" : "bg-green-500";
   const hasData = currentMonth.income > 0 || currentMonth.expense > 0;
@@ -418,17 +451,48 @@ export default function DashboardClient({
     <div className="space-y-6">
 
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Hola, {userName.split(" ")[0]}</h1>
-        <p className="text-gray-400 text-sm mt-0.5">{currentMonthLabel}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Hola, {userName.split(" ")[0]}</h1>
+          <p className="text-gray-400 text-sm mt-0.5">{currentMonthLabel}</p>
+        </div>
+        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1 shrink-0">
+          <Link
+            href={prevMonthHref}
+            className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 transition-colors"
+            aria-label="Mes anterior"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Link>
+          {!isCurrentMonth && (
+            <Link
+              href="/dashboard"
+              className="px-2 text-xs font-medium text-green-600 hover:text-green-700"
+            >
+              Hoy
+            </Link>
+          )}
+          <Link
+            href={nextMonthHref}
+            className={`p-1.5 rounded-md transition-colors ${
+              isCurrentMonth ? "text-gray-200 pointer-events-none" : "hover:bg-gray-100 text-gray-500"
+            }`}
+            aria-label="Mes siguiente"
+            aria-disabled={isCurrentMonth}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
       </div>
 
-      {/* Onboarding checklist */}
-      <OnboardingChecklist
-        hasCommitments={commitments.length > 0}
-        hasIncome={hasIncome}
-        hasExpense={hasExpense}
-      />
+      {/* Onboarding checklist — solo en el mes actual */}
+      {isCurrentMonth && (
+        <OnboardingChecklist
+          hasCommitments={commitments.length > 0}
+          hasIncome={hasIncome}
+          hasExpense={hasExpense}
+        />
+      )}
 
       {/* Consejo rápido */}
       {tip && (
@@ -450,8 +514,8 @@ export default function DashboardClient({
         </div>
       )}
 
-      {/* Recordatorios de pago */}
-      {showReminders && (upcomingPayments.length > 0 || overduePayments.length > 0) && (
+      {/* Recordatorios de pago — solo relevantes en el mes actual */}
+      {isCurrentMonth && showReminders && (upcomingPayments.length > 0 || overduePayments.length > 0) && (
         <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 space-y-2">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
@@ -646,6 +710,18 @@ export default function DashboardClient({
                               <span className="ml-2 text-blue-400">· Día {c.payDay}</span>
                             )}
                           </p>
+                          {(c.paymentDetails?.entity || c.paymentDetails?.accountNumber || c.paymentDetails?.note) && (
+                            <button
+                              onClick={() => setPaymentInfo(c)}
+                              className="mt-1 flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+                            >
+                              {c.paymentDetails?.entity ? (
+                                <><Building2 className="w-3 h-3" />{c.paymentDetails.entity}</>
+                              ) : (
+                                <><FileText className="w-3 h-3" />Ver datos de pago</>
+                              )}
+                            </button>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-3 shrink-0 ml-4">
@@ -1070,6 +1146,39 @@ export default function DashboardClient({
               {" · "}{fmt(payDateModal.commitment.amount)}
             </p>
             <div className="space-y-4">
+              {(payDateModal.commitment.paymentDetails?.entity ||
+                payDateModal.commitment.paymentDetails?.accountNumber ||
+                payDateModal.commitment.paymentDetails?.note) && (
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-2.5">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Datos de pago</p>
+                  {payDateModal.commitment.paymentDetails?.entity && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Building2 className="w-4 h-4 text-gray-400 shrink-0" />
+                      <span className="text-gray-700">{payDateModal.commitment.paymentDetails.entity}</span>
+                    </div>
+                  )}
+                  {payDateModal.commitment.paymentDetails?.accountNumber && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Hash className="w-4 h-4 text-gray-400 shrink-0" />
+                      <span className="text-gray-700 font-mono flex-1">{payDateModal.commitment.paymentDetails.accountNumber}</span>
+                      <button
+                        type="button"
+                        onClick={() => copyText(payDateModal.commitment.paymentDetails!.accountNumber!, "pay-account")}
+                        className={`flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-all font-medium shrink-0 ${
+                          copiedField === "pay-account"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-white border border-gray-200 text-gray-500 hover:bg-gray-100"
+                        }`}
+                      >
+                        {copiedField === "pay-account" ? <><Check className="w-3 h-3" />Copiado</> : <><Copy className="w-3 h-3" />Copiar</>}
+                      </button>
+                    </div>
+                  )}
+                  {payDateModal.commitment.paymentDetails?.note && (
+                    <p className="text-xs text-gray-500 whitespace-pre-wrap pl-6">{payDateModal.commitment.paymentDetails.note}</p>
+                  )}
+                </div>
+              )}
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <CalendarDays className="w-4 h-4 text-blue-500 shrink-0" />
@@ -1101,6 +1210,68 @@ export default function DashboardClient({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal datos de pago (solo lectura) */}
+      {paymentInfo && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-lg font-semibold text-gray-900">Datos de pago</h2>
+              <button onClick={() => setPaymentInfo(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm font-medium text-gray-500 mb-5">{paymentInfo.name}</p>
+            <div className="space-y-4">
+              {paymentInfo.paymentDetails?.entity && (
+                <div className="flex items-start gap-3">
+                  <Building2 className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">Entidad / Banco</p>
+                    <p className="text-sm text-gray-800">{paymentInfo.paymentDetails.entity}</p>
+                  </div>
+                </div>
+              )}
+              {paymentInfo.paymentDetails?.accountNumber && (
+                <div className="flex items-start gap-3">
+                  <Hash className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">Número de cuenta / Celular</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-gray-800 font-mono">{paymentInfo.paymentDetails.accountNumber}</p>
+                      <button
+                        onClick={() => copyText(paymentInfo.paymentDetails!.accountNumber!, "info-account")}
+                        className={`flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-all font-medium shrink-0 ${
+                          copiedField === "info-account"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                        }`}
+                      >
+                        {copiedField === "info-account" ? <><Check className="w-3 h-3" />Copiado</> : <><Copy className="w-3 h-3" />Copiar</>}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {paymentInfo.paymentDetails?.note && (
+                <div className="flex items-start gap-3">
+                  <FileText className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">Nota</p>
+                    <p className="text-sm text-gray-800 whitespace-pre-wrap">{paymentInfo.paymentDetails.note}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => setPaymentInfo(null)}
+              className="w-full mt-6 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 font-medium text-sm"
+            >
+              Cerrar
+            </button>
           </div>
         </div>
       )}

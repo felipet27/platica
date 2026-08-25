@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Pencil, Trash2, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Pencil, Trash2, X, ChevronLeft, ChevronRight, Info, Building2, Hash, FileText, Copy, Check } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
-import { CATEGORIES } from "@/lib/categories";
 import { PageInfoTooltip } from "@/components/ui/PageInfoTooltip";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 
@@ -21,6 +20,11 @@ interface Commitment {
   totalInstallments?: number;
   installmentsPaid?: number;
   month?: string;
+  paymentDetails?: {
+    entity?: string;
+    accountNumber?: string;
+    note?: string;
+  };
 }
 
 const EMPTY_FORM = {
@@ -33,6 +37,9 @@ const EMPTY_FORM = {
   category: "",
   payDay: "",
   totalInstallments: "",
+  paymentEntity: "",
+  paymentAccountNumber: "",
+  paymentNote: "",
 };
 
 function toYearMonth(date: Date) {
@@ -51,9 +58,19 @@ export default function CommitmentsPage() {
   const [editing, setEditing] = useState<Commitment | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
   const [deleteCommitment, setDeleteCommitment] = useState<Commitment | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => toYearMonth(new Date()));
+  const [paymentModal, setPaymentModal] = useState<Commitment | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   const fetchCommitments = useCallback(async () => {
     const res = await fetch("/api/commitments");
@@ -68,17 +85,20 @@ export default function CommitmentsPage() {
   function openCreate() {
     setEditing(null);
     setForm(EMPTY_FORM);
+    setFormError("");
     setShowForm(true);
   }
 
   function openCreateVariable() {
     setEditing(null);
     setForm({ ...EMPTY_FORM, type: "expense", expenseType: "variable" });
+    setFormError("");
     setShowForm(true);
   }
 
   function openEdit(c: Commitment) {
     setEditing(c);
+    setFormError("");
     setForm({
       name: c.name,
       amount: String(c.amount),
@@ -89,6 +109,9 @@ export default function CommitmentsPage() {
       category: c.category,
       payDay: c.payDay ? String(c.payDay) : "",
       totalInstallments: c.totalInstallments ? String(c.totalInstallments) : "",
+      paymentEntity: c.paymentDetails?.entity ?? "",
+      paymentAccountNumber: c.paymentDetails?.accountNumber ?? "",
+      paymentNote: c.paymentDetails?.note ?? "",
     });
     setShowForm(true);
   }
@@ -96,6 +119,7 @@ export default function CommitmentsPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
+    setFormError("");
 
     const isVariableExpense = form.type === "expense" && form.expenseType === "variable";
 
@@ -109,25 +133,36 @@ export default function CommitmentsPage() {
       category: form.category,
       ...(!isVariableExpense && form.payDay ? { payDay: parseInt(form.payDay) } : {}),
       ...(!isVariableExpense && form.totalInstallments ? { totalInstallments: parseInt(form.totalInstallments) } : {}),
+      paymentDetails: {
+        entity: form.paymentEntity || null,
+        accountNumber: form.paymentAccountNumber || null,
+        note: form.paymentNote || null,
+      },
     };
 
-    if (editing) {
-      await fetch(`/api/commitments/${editing._id}`, {
-        method: "PUT",
+    try {
+      const url = editing ? `/api/commitments/${editing._id}` : "/api/commitments";
+      const method = editing ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-    } else {
-      await fetch("/api/commitments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-    }
 
-    setShowForm(false);
-    setSubmitting(false);
-    fetchCommitments();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setFormError(data.error ?? "Error al guardar. Intenta de nuevo.");
+        setSubmitting(false);
+        return;
+      }
+
+      setShowForm(false);
+      fetchCommitments();
+    } catch {
+      setFormError("Error de conexión. Verifica tu red e intenta de nuevo.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function confirmDelete() {
@@ -158,8 +193,8 @@ export default function CommitmentsPage() {
     setSelectedMonth(toYearMonth(new Date(y, m)));
   }
 
-  const { fmt } = useSettings();
-  const categories = CATEGORIES[form.type];
+  const { fmt, categoriesFor } = useSettings();
+  const categories = categoriesFor(form.type);
   const isVariableExpenseForm = form.type === "expense" && form.expenseType === "variable";
   const currentMonth = toYearMonth(new Date());
 
@@ -427,7 +462,52 @@ export default function CommitmentsPage() {
                       )}
                     </div>
                   )}
+
+                  {/* Datos de pago */}
+                  <div className="border-t border-gray-100 pt-3 space-y-3">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+                      <Info className="w-3.5 h-3.5" />
+                      Datos de pago
+                      <span className="font-normal normal-case">— opcionales</span>
+                    </p>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Entidad / Banco</label>
+                      <input
+                        type="text"
+                        value={form.paymentEntity}
+                        onChange={(e) => setForm({ ...form, paymentEntity: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                        placeholder="Ej: Bancolombia, Nequi, Daviplata"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Número de cuenta / Celular</label>
+                      <input
+                        type="text"
+                        value={form.paymentAccountNumber}
+                        onChange={(e) => setForm({ ...form, paymentAccountNumber: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                        placeholder="Ej: 310 123 4567 · 123-456789-00"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nota</label>
+                      <textarea
+                        value={form.paymentNote}
+                        onChange={(e) => setForm({ ...form, paymentNote: e.target.value })}
+                        rows={2}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none resize-none"
+                        placeholder="Ej: Pagar antes del día 5, referencia: 98765"
+                      />
+                    </div>
+                  </div>
                 </div>
+              )}
+
+              {formError && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  {formError}
+                </p>
               )}
 
               <div className="flex gap-3 pt-2">
@@ -483,6 +563,68 @@ export default function CommitmentsPage() {
         </div>
       )}
 
+      {/* Modal datos de pago */}
+      {paymentModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-lg font-semibold text-gray-900">Datos de pago</h2>
+              <button onClick={() => setPaymentModal(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm font-medium text-gray-500 mb-5">{paymentModal.name}</p>
+            <div className="space-y-4">
+              {paymentModal.paymentDetails?.entity && (
+                <div className="flex items-start gap-3">
+                  <Building2 className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">Entidad / Banco</p>
+                    <p className="text-sm text-gray-800">{paymentModal.paymentDetails.entity}</p>
+                  </div>
+                </div>
+              )}
+              {paymentModal.paymentDetails?.accountNumber && (
+                <div className="flex items-start gap-3">
+                  <Hash className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">Número de cuenta / Celular</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-gray-800 font-mono">{paymentModal.paymentDetails.accountNumber}</p>
+                      <button
+                        onClick={() => copyToClipboard(paymentModal.paymentDetails!.accountNumber!)}
+                        className={`flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-all font-medium shrink-0 ${
+                          copied
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                        }`}
+                      >
+                        {copied ? <><Check className="w-3 h-3" />Copiado</> : <><Copy className="w-3 h-3" />Copiar</>}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {paymentModal.paymentDetails?.note && (
+                <div className="flex items-start gap-3">
+                  <FileText className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">Nota</p>
+                    <p className="text-sm text-gray-800 whitespace-pre-wrap">{paymentModal.paymentDetails.note}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => setPaymentModal(null)}
+              className="w-full mt-6 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 font-medium text-sm"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Gastos fijos */}
       <CommitmentSection
         title="Gastos fijos"
@@ -492,6 +634,7 @@ export default function CommitmentsPage() {
         onEdit={openEdit}
         onDelete={setDeleteCommitment}
         onToggle={toggleActive}
+        onPaymentInfo={setPaymentModal}
       />
 
       {/* Gastos variables del mes */}
@@ -615,6 +758,7 @@ export default function CommitmentsPage() {
         onEdit={openEdit}
         onDelete={setDeleteCommitment}
         onToggle={toggleActive}
+        onPaymentInfo={setPaymentModal}
       />
 
       {/* Ingresos variables */}
@@ -626,6 +770,7 @@ export default function CommitmentsPage() {
         onEdit={openEdit}
         onDelete={setDeleteCommitment}
         onToggle={toggleActive}
+        onPaymentInfo={setPaymentModal}
         showVariableBadge
       />
     </div>
@@ -640,6 +785,7 @@ function CommitmentSection({
   onEdit,
   onDelete,
   onToggle,
+  onPaymentInfo,
   showVariableBadge = false,
 }: {
   title: string;
@@ -649,6 +795,7 @@ function CommitmentSection({
   onEdit: (c: Commitment) => void;
   onDelete: (c: Commitment) => void;
   onToggle: (c: Commitment) => void;
+  onPaymentInfo: (c: Commitment) => void;
   showVariableBadge?: boolean;
 }) {
   const { fmt } = useSettings();
@@ -693,6 +840,20 @@ function CommitmentSection({
                 >
                   <td className="px-5 py-3.5">
                     <p className="text-sm font-medium text-gray-900">{c.name}</p>
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                      {(c.paymentDetails?.entity || c.paymentDetails?.accountNumber || c.paymentDetails?.note) && (
+                        <button
+                          onClick={() => onPaymentInfo(c)}
+                          className="flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+                        >
+                          {c.paymentDetails?.entity ? (
+                            <><Building2 className="w-3 h-3" />{c.paymentDetails.entity}</>
+                          ) : (
+                            <><FileText className="w-3 h-3" />Ver datos de pago</>
+                          )}
+                        </button>
+                      )}
+                    </div>
                     <div className="flex flex-wrap items-center gap-2 mt-0.5">
                       {showVariableBadge && (
                         <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">

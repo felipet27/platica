@@ -113,6 +113,25 @@ export default function SavingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
+
+      // Si el monto ahorrado cambió manualmente, registramos una transacción de
+      // ajuste para que la tasa de ahorro y el balance no se descuadren.
+      const newAmount = parseFloat(form.currentAmount) || 0;
+      const delta = newAmount - editingPlan.currentAmount;
+      if (delta !== 0) {
+        await fetch("/api/transactions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: delta > 0 ? "expense" : "income",
+            amount: Math.abs(delta),
+            category: "Ahorro",
+            description: `Ajuste de ahorro: "${form.name}"`,
+            date: new Date().toISOString().slice(0, 10),
+            tags: [],
+          }),
+        });
+      }
     } else {
       await fetch("/api/savings", {
         method: "POST",
