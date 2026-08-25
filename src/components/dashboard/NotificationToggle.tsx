@@ -58,7 +58,12 @@ export function NotificationToggle() {
 
       const reg = await navigator.serviceWorker.ready;
 
-      const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      const vapidRes = await fetch("/api/push/vapid-key");
+      if (!vapidRes.ok) {
+        setError("Falta la clave de notificaciones. Contacta al soporte.");
+        return;
+      }
+      const { key } = await vapidRes.json();
       if (!key) {
         setError("Falta la clave de notificaciones. Contacta al soporte.");
         return;
