@@ -4,8 +4,10 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Lock, Eye, EyeOff } from "lucide-react";
 import { signOut } from "next-auth/react";
 
-const TIMEOUT_MS = 10 * 60 * 1000;
+const LOCK_TIMEOUT_MS = 15 * 60 * 1000; // 15 min sin actividad → bloquea
+const LOGOUT_TIMEOUT_MS = 8 * 60 * 60 * 1000; // 8 h sin actividad → cierra sesión
 const ACTIVITY_EVENTS = ["mousedown", "keydown", "scroll", "touchstart"] as const;
+const LAST_ACTIVITY_KEY = "platica:lastActivity";
 
 interface Props {
   user: { name: string; email: string };
@@ -28,20 +30,44 @@ export default function InactivityLock({ user }: Props) {
     setShowPassword(false);
   }, []);
 
+  const forceLogout = useCallback(() => {
+    signOut({ callbackUrl: "/login" });
+  }, []);
+
   const resetTimer = useCallback(() => {
     lastActivityRef.current = Date.now();
+    try {
+      localStorage.setItem(LAST_ACTIVITY_KEY, String(lastActivityRef.current));
+    } catch {}
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(lock, TIMEOUT_MS);
+    timerRef.current = setTimeout(lock, LOCK_TIMEOUT_MS);
   }, [lock]);
 
   useEffect(() => {
-    resetTimer();
+    // Al montar, usar la última actividad persistida (sobrevive recargas y
+    // timers congelados en segundo plano) para decidir el estado real.
+    const stored = Number(localStorage.getItem(LAST_ACTIVITY_KEY));
+    const elapsed = stored ? Date.now() - stored : 0;
+    if (elapsed >= LOGOUT_TIMEOUT_MS) {
+      forceLogout();
+      return;
+    }
+    if (elapsed >= LOCK_TIMEOUT_MS) {
+      lastActivityRef.current = stored;
+      lock();
+    } else {
+      resetTimer();
+    }
+
     ACTIVITY_EVENTS.forEach((e) => window.addEventListener(e, resetTimer, { passive: true }));
 
+    // Los navegadores congelan setTimeout en pestañas ocultas, así que al
+    // volver a primer plano recalculamos con el tiempo real transcurrido.
     const handleVisibility = () => {
-      if (!document.hidden && Date.now() - lastActivityRef.current >= TIMEOUT_MS) {
-        lock();
-      }
+      if (document.hidden) return;
+      const idle = Date.now() - lastActivityRef.current;
+      if (idle >= LOGOUT_TIMEOUT_MS) forceLogout();
+      else if (idle >= LOCK_TIMEOUT_MS) lock();
     };
     document.addEventListener("visibilitychange", handleVisibility);
 
@@ -50,7 +76,7 @@ export default function InactivityLock({ user }: Props) {
       ACTIVITY_EVENTS.forEach((e) => window.removeEventListener(e, resetTimer));
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [resetTimer, lock]);
+  }, [resetTimer, lock, forceLogout]);
 
   const unlock = async (e: React.FormEvent) => {
     e.preventDefault();

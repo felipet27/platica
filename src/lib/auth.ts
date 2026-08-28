@@ -16,7 +16,11 @@ const client = new MongoClient(process.env.MONGODB_URI!);
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
   adapter: MongoDBAdapter(client),
-  session: { strategy: "jwt" },
+  session: {
+    strategy: "jwt",
+    maxAge: 7 * 24 * 60 * 60, // 7 días de vida máxima del token
+    updateAge: 24 * 60 * 60, // se renueva a lo sumo una vez al día si hay uso
+  },
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID,
