@@ -5,6 +5,7 @@ import { Menu } from "lucide-react";
 import Sidebar from "./Sidebar";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import InactivityLock from "./InactivityLock";
 
 interface Props {
   children: React.ReactNode;
@@ -16,6 +17,7 @@ export default function DashboardShell({ children, user }: Props) {
 
   return (
     <SettingsProvider>
+      <InactivityLock user={user} />
       <div className="flex min-h-screen bg-gray-50">
         {open && (
           <div

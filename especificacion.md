@@ -1,68 +1,182 @@
-# Especificación Técnica
+# Especificación Técnica — Platíca
 
 ## Visión del Producto
 
-Ofrecer una plataforma integral para la gestión de finanzas personales, donde los usuarios puedan gestionar sus ingresos y egresos de manera efectiva, recibir predicciones y alertas de ahorro precisas, y disfrutar de una experiencia de usuario intuitiva y segura. Para el Ingeniero de Sistemas, significa una infraestructura escalable y segura. Para el Usuario Financiero, implica facilidad de uso y funcionalidad efectiva. Para el Analista de Datos, se traduce en capacidad de recopilar y analizar datos financieros. Para el Asesor Financiero, supone recomendaciones y alertas de ahorro realistas. Para el Diseñador de Experiencia de Usuario, significa interfaz atractiva y fácil de navegar. Y para el Especialista en Seguridad, representa la protección de la información financiera de los usuarios.
-
----
-
-## Usuarios Objetivo
-
-- Ingeniero de Sistemas: profesional responsable de la infraestructura y arquitectura del sistema, buscando escalabilidad, seguridad y eficiencia.
-- Usuario Financiero: individuo que busca gestionar sus finanzas personales de manera efectiva, necesita una plataforma fácil de usar y funcional.
-- Analista de Datos: experto en el análisis de datos financieros, requiere una plataforma que pueda recopilar y procesar grandes cantidades de datos.
-- Asesor Financiero: profesional con conocimiento en finanzas personales, busca una plataforma que ofrezca recomendaciones y alertas de ahorro realistas y efectivas.
-- Diseñador de Experiencia de Usuario: profesional responsable de crear una interfaz intuitiva y atractiva, facilitando la navegación y el uso de la plataforma.
-- Especialista en Seguridad: profesional encargado de garantizar la seguridad de la información financiera de los usuarios, protegiendo contra amenazas y vulnerabilidades.
-
----
-
-## Funcionalidades
-
-1. [Ingeniero de Sistemas] El usuario puede configurar y monitorear el rendimiento del sistema en tiempo real.
-2. [Ingeniero de Sistemas] El sistema permite la implementación de actualizaciones y parches de seguridad de manera automática.
-3. [Usuario Financiero] El usuario puede ingresar y gestionar sus ingresos y egresos de manera efectiva.
-4. [Usuario Financiero] El sistema ofrece la capacidad de categorizar y etiquetar transacciones para un mejor análisis.
-5. [Analista de Datos] El sistema puede recopilar y analizar grandes cantidades de datos financieros.
-6. [Analista de Datos] El sistema ofrece herramientas de visualización de datos para una mejor comprensión de las finanzas.
-7. [Asesor Financiero] El sistema ofrece recomendaciones y alertas de ahorro realistas y efectivas.
-8. [Asesor Financiero] El sistema permite la creación de planes de ahorro personalizados para los usuarios.
-9. [Diseñador de Experiencia de Usuario] La plataforma ofrece una interfaz intuitiva y atractiva, facilitando la navegación.
-10. [Diseñador de Experiencia de Usuario] El sistema ofrece notificaciones y recordatorios para ayudar a los usuarios a mantenerse organizados.
-11. [Especialista en Seguridad] El sistema cuenta con autenticación de dos factores para proteger las cuentas de los usuarios.
-12. [Especialista en Seguridad] El sistema utiliza criptografía avanzada para proteger la información financiera de los usuarios.
-
----
-
-## Flujos de Usuario
-
-Flujo del Ingeniero de Sistemas: 1. Configuración del entorno de desarrollo. 2. Implementación de la arquitectura del sistema. 3. Despliegue en Vercel.
-
-Flujo del Usuario Financiero: 1. Inicio de sesión. 2. Ingreso de datos financieros. 3. Análisis de gastos y ahorros.
-
-Flujo del Analista de Datos: 1. Recopilación de datos financieros. 2. Análisis de datos. 3. Generación de informes.
-
-Flujo del Asesor Financiero: 1. Revisión de datos financieros. 2. Creación de planes de ahorro. 3. Asignación de recomendaciones.
-
-Flujo del Diseñador de Experiencia de Usuario: 1. Diseño de la interfaz de usuario. 2. Pruebas de usabilidad. 3. Implementación de mejoras.
-
-Flujo del Especialista en Seguridad: 1. Análisis de vulnerabilidades. 2. Implementación de medidas de seguridad. 3. Monitoreo constante.
+Platíca es una plataforma de gestión de finanzas personales orientada al usuario colombiano. Permite registrar ingresos y egresos, gestionar compromisos recurrentes, hacer seguimiento de metas de ahorro, visualizar análisis financieros y recibir consejos personalizados. El nombre es un término coloquial derivado de "plata" (dinero).
 
 ---
 
 ## Arquitectura Técnica
 
+- **Frontend / Backend:** Next.js 16 (App Router) + React 19 + TypeScript
+- **Base de datos:** MongoDB Atlas (Mongoose como ODM)
+- **Autenticación:** Auth.js v5 (NextAuth) con `@auth/mongodb-adapter`, estrategia JWT
+- **Estilos:** Tailwind CSS v4
+- **Gráficas:** Recharts
+- **Íconos:** Lucide React
+- **Notificaciones push:** Web Push API + `web-push`
+- **Despliegue:** Vercel (`platica-jjcn.vercel.app`)
+- **PWA:** Service Worker + Web App Manifest (instalable en dispositivos)
+
+---
+
+## Modelos de datos (MongoDB)
+
+### User
+- `name`, `email`, `password` (bcrypt, select: false), `image`
+- `twoFactorEnabled` (Boolean), `twoFactorSecret` (select: false) — campos reservados, sin uso activo
+- `preferences.currency` (default: "COP"), `preferences.customCategories` (income[], expense[])
+- `loginAttempts`, `lockUntil` — anti-fuerza bruta (5 intentos → bloqueo 15 min)
+
+### Transaction
+- `userId`, `type` ("income" | "expense"), `amount`, `category`, `description`, `tags`, `date`
+- `commitmentId` (referencia opcional a Commitment)
+
+### Commitment
+- `userId`, `name`, `amount`, `type`, `category`, `isActive`
+- Para gastos: `expenseType` ("fixed" | "variable"), `frequency`, `payDay`
+- Para ingresos: `incomeType`, `frequency`
+- Cuotas: `totalInstallments`, `installmentsPaid`
+- `paymentDetails` (entity, accountNumber, note)
+
+### Budget
+- `userId`, `category`, `limit` — índice único userId+category
+
+### SavingsPlan
+- `userId`, `name`, `targetAmount`, `currentAmount`, `targetDate`, `monthlyContribution`
+- `contributions[]` (amount, date, note), `isActive`, `category`, `description`
+
+### PushSubscription
+- `userId`, `endpoint`, `keys` (p256dh, auth)
+
+---
+
+## Funcionalidades implementadas
+
+### Autenticación y seguridad
+- Registro con email y contraseña (bcrypt costo 12)
+- Login con email/contraseña y con Google OAuth
+- Bloqueo de cuenta tras 5 intentos fallidos (15 minutos)
+- Sesión JWT con NextAuth; rutas protegidas por middleware
+- Bloqueo por inactividad: pantalla de bloqueo tras 10 minutos sin actividad, requiere contraseña para desbloquear (sin cerrar sesión)
+
+### Dashboard
+- Balance del mes: ingresos totales, gastos totales, saldo
+- Libre estimado: ingresos menos compromisos fijos y aportes a ahorro
+- Recordatorios de compromisos pendientes o vencidos
+- Selector de mes (`?month=YYYY-MM`) — recordatorios solo en mes actual
+- Consejo financiero del día
+
+### Transacciones
+- Registro manual de ingresos y egresos con fecha, categoría y descripción
+- Edición y eliminación de transacciones
+- Búsqueda por texto (debounce), filtros por categoría y rango de fechas
+- Exportación a CSV (`/api/transactions/export`)
+- Paginación
+
+### Compromisos
+- Gastos e ingresos recurrentes fijos o variables
+- Frecuencia mensual o quincenal; día de pago configurable
+- Cuotas (totalInstallments / installmentsPaid) con desactivación automática al completar
+- Campo `paymentDetails` con entidad, número de cuenta y nota; botón de copia
+- Marcar como "Pagado" o "Recibido" genera transacción automáticamente
+
+### Presupuestos por categoría
+- Tope mensual por categoría (`Budget`)
+- Alerta visual cuando el gasto del mes supera el límite
+- Gestión desde la sección Insights
+
+### Planes de ahorro
+- Creación de metas con nombre, monto objetivo, fecha y aportación mensual sugerida
+- Registro de aportes individuales con nota
+- Seguimiento visual del progreso
+- Eliminación con opción de liberar el monto ahorrado
+
+### Insights y consejos
+- Resumen mensual: ingreso, gasto, balance, tasa de ahorro
+- Alertas por categoría cuando supera umbrales definidos
+- Detección de gastos hormiga (muchas transacciones pequeñas)
+- Regla 50/30/20 con visualización del porcentaje real
+- Consejos personalizados según el patrón de gasto del mes
+
+### Configuración
+- Selección de moneda: COP, USD, EUR, MXN, BRL (guardada en DB y localStorage)
+- Tema claro / oscuro (clase `.dark` en `<html>`, script anti-flash, persistido en localStorage)
+- Categorías personalizadas por tipo (income / expense), guardadas en `User.preferences`
+- Notificaciones push: suscripción/desuscripción, recordatorios diarios por cron (Vercel Cron 13:00 UTC)
+- Guía de uso y glosario de términos integrados en la página de configuración
+- Zona de peligro: reset de datos (con opción de conservar compromisos)
+
+### PWA
+- Instalable como app en móvil y desktop
+- Service Worker con handler de notificaciones push y `notificationclick`
+- Manifest con íconos generados dinámicamente
+
+---
+
+## Categorías predefinidas
+
+**Ingresos:** Salario, Freelance, Inversiones, Ventas, Otros ingresos
+
+**Gastos:** Alimentación, Mercado, Transporte, Pasajes, Vivienda, Salud, Educación, Entretenimiento, Paseos, Ropa, Servicios, Gastos hormiga, Deudas, Otros gastos
+
+---
+
+## API — Endpoints
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET/POST | `/api/auth/[...nextauth]` | Handlers NextAuth (Google + Credentials) |
+| POST | `/api/auth/register` | Registro de usuario |
+| GET | `/api/auth/lockstatus?email=X` | Estado de bloqueo de cuenta |
+| POST | `/api/auth/verify-password` | Verifica contraseña del usuario autenticado |
+| GET | `/api/transactions` | Listar transacciones (filtros, paginación) |
+| POST | `/api/transactions` | Crear transacción |
+| PATCH | `/api/transactions/[id]` | Editar transacción |
+| DELETE | `/api/transactions/[id]` | Eliminar transacción |
+| GET | `/api/transactions/summary` | Resumen mensual (últimos 6 meses) |
+| GET | `/api/transactions/export` | Exportar CSV |
+| GET | `/api/commitments` | Listar compromisos |
+| POST | `/api/commitments` | Crear compromiso |
+| PUT | `/api/commitments/[id]` | Actualizar compromiso |
+| DELETE | `/api/commitments/[id]` | Eliminar compromiso |
+| GET | `/api/budgets` | Listar presupuestos con gasto actual |
+| POST | `/api/budgets` | Crear/actualizar presupuesto (upsert) |
+| DELETE | `/api/budgets/[id]` | Eliminar presupuesto |
+| GET | `/api/savings` | Listar planes de ahorro |
+| POST | `/api/savings` | Crear plan |
+| PATCH | `/api/savings/[id]` | Actualizar plan o registrar aporte |
+| DELETE | `/api/savings/[id]` | Eliminar plan |
+| GET | `/api/settings` | Obtener preferencias del usuario |
+| PATCH | `/api/settings` | Actualizar preferencias |
+| POST | `/api/settings/reset` | Resetear datos |
+| GET | `/api/insights` | Análisis financiero completo del mes |
+| POST | `/api/push/subscribe` | Suscribirse a push notifications |
+| DELETE | `/api/push/subscribe` | Desuscribirse |
+| GET | `/api/push/vapid-key` | Clave pública VAPID |
+| GET | `/api/cron/reminders` | Recordatorios de pagos (requiere CRON_SECRET) |
+
+---
+
+## Variables de entorno requeridas
+
 ```
-Se recomienda una arquitectura de microservicios, utilizando Next.js + MongoDB Atlas (free tier) + Auth.js v5 con @auth/mongodb-adapter para el backend, y react.js para el frontend. La base de datos será MongoDB, por su flexibilidad y escalabilidad. Para el despliegue, se utilizará Vercel, que ofrece una solución escalable y segura para aplicaciones web. La seguridad se garantizará mediante autenticación de dos factores, criptografía avanzada y actualizaciones de seguridad regulares.
+MONGODB_URI=
+AUTH_SECRET=
+AUTH_GOOGLE_ID=
+AUTH_GOOGLE_SECRET=
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=
+CRON_SECRET=
 ```
 
 ---
 
-## Requisitos No Funcionales
+## Convenciones del proyecto
 
-- El sistema debe ser capaz de manejar al menos 1000 usuarios concurrentes.
-- El sistema debe poder procesar transacciones financieras en un promedio de 2 segundos.
-- El sistema debe ofrecer una tasa de disponibilidad del 99.9%.
-- El sistema debe cumplir con los estándares de seguridad PCI-DSS para proteger la información financiera de los usuarios.
-- El sistema debe ser compatible con los navegadores Chrome, Firefox y Safari.
-- El sistema debe ofrecer soporte técnico 24/7 para resolver cualquier incidencia.
+- Nombre: **Platíca** (P mayúscula, acento en í). URLs y claves de storage usan `platica` sin acento.
+- Moneda por defecto: COP (Peso colombiano, locale `es-CO`, sin decimales).
+- Todos los componentes del dashboard usan `const { fmt } = useSettings()` para formatear montos.
+- Modales personalizados con Tailwind (nunca `confirm()`, `prompt()` ni `alert()` nativos).
+- TypeScript estricto en todo el proyecto.
