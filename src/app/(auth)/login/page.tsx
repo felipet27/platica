@@ -46,6 +46,9 @@ export default function LoginPage() {
     } else {
       // Nuevo login: permite que el banner de instalar aparezca una vez.
       sessionStorage.removeItem("platica_install_seen");
+      // Resetear el timestamp de inactividad para que InactivityLock no expulse
+      // al usuario inmediatamente si la sesión anterior fue hace más de 8 horas.
+      localStorage.removeItem("platica:lastActivity");
       router.push("/dashboard");
     }
 
@@ -55,6 +58,7 @@ export default function LoginPage() {
   async function handleGoogle() {
     setGoogleLoading(true);
     sessionStorage.removeItem("platica_install_seen");
+    localStorage.removeItem("platica:lastActivity");
     await signIn("google", { callbackUrl: "/dashboard" });
   }
 
