@@ -18,12 +18,12 @@ import { PlaticaLogo } from "@/components/ui/PlaticaLogo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "El resumen" },
-  { href: "/commitments", icon: Repeat2, label: "Compromisos" },
-  { href: "/transactions", icon: ArrowLeftRight, label: "Transacciones" },
-  { href: "/savings", icon: PiggyBank, label: "Ahorros" },
-  { href: "/insights", icon: Lightbulb, label: "Consejos" },
-  { href: "/settings", icon: Settings, label: "Configuración" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "El resumen", desc: "Tu panorama del mes" },
+  { href: "/commitments", icon: Repeat2, label: "Compromisos", desc: "Ingresos y gastos recurrentes" },
+  { href: "/transactions", icon: ArrowLeftRight, label: "Transacciones", desc: "Tus movimientos reales" },
+  { href: "/savings", icon: PiggyBank, label: "Ahorros", desc: "Metas y aportes" },
+  { href: "/insights", icon: Lightbulb, label: "Consejos", desc: "Análisis y tips" },
+  { href: "/settings", icon: Settings, label: "Configuración", desc: "Preferencias y ayuda" },
 ];
 
 interface SidebarProps {
@@ -56,21 +56,26 @@ export default function Sidebar({ user, open, onClose }: SidebarProps) {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+        {NAV_ITEMS.map(({ href, icon: Icon, label, desc }) => {
           const active = pathname === href;
           return (
             <Link
               key={href}
               href={href}
               onClick={onClose}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                 active
                   ? "bg-green-50 text-green-700"
                   : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
               }`}
             >
-              <Icon className="w-5 h-5" />
-              {label}
+              <Icon className="w-5 h-5 shrink-0" />
+              <span className="flex flex-col leading-tight min-w-0">
+                <span className="font-medium">{label}</span>
+                <span className={`text-xs font-normal truncate ${active ? "text-green-600" : "text-gray-400"}`}>
+                  {desc}
+                </span>
+              </span>
             </Link>
           );
         })}

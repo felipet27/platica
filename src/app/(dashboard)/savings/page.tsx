@@ -6,6 +6,7 @@ import { PageInfoTooltip } from "@/components/ui/PageInfoTooltip";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
+import { todayISO } from "@/lib/date";
 import { useSettings } from "@/contexts/SettingsContext";
 
 interface Contribution {
@@ -59,7 +60,7 @@ export default function SavingsPage() {
   const [contributionPlan, setContributionPlan] = useState<SavingsPlan | null>(null);
   const [contributionAmount, setContributionAmount] = useState("");
   const [contributionNote, setContributionNote] = useState("");
-  const [contributionDate, setContributionDate] = useState(new Date().toISOString().slice(0, 10));
+  const [contributionDate, setContributionDate] = useState(todayISO());
   const [contributionSubmitting, setContributionSubmitting] = useState(false);
   const [expandedHistory, setExpandedHistory] = useState<Set<string>>(new Set());
 
@@ -127,7 +128,7 @@ export default function SavingsPage() {
             amount: Math.abs(delta),
             category: "Ahorro",
             description: `Ajuste de ahorro: "${form.name}"`,
-            date: new Date().toISOString().slice(0, 10),
+            date: todayISO(),
             tags: [],
           }),
         });
@@ -158,7 +159,7 @@ export default function SavingsPage() {
           amount: deletePlan.currentAmount,
           category: "Ahorro",
           description: `Recuperación de ahorro: "${deletePlan.name}"`,
-          date: new Date().toISOString().slice(0, 10),
+          date: todayISO(),
           tags: [],
         }),
       });
@@ -201,7 +202,7 @@ export default function SavingsPage() {
     setContributionPlan(null);
     setContributionAmount("");
     setContributionNote("");
-    setContributionDate(new Date().toISOString().slice(0, 10));
+    setContributionDate(todayISO());
     setContributionSubmitting(false);
     fetchPlans();
   }
@@ -397,7 +398,7 @@ export default function SavingsPage() {
                 <input
                   type="date"
                   required
-                  max={new Date().toISOString().slice(0, 10)}
+                  max={todayISO()}
                   value={contributionDate}
                   onChange={(e) => setContributionDate(e.target.value)}
                   className="w-full px-3 py-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none text-sm text-gray-700"
@@ -570,7 +571,7 @@ export default function SavingsPage() {
                     </div>
                     <div className="relative group">
                       <button
-                        onClick={() => { setContributionPlan(plan); setContributionAmount(""); setContributionNote(""); setContributionDate(new Date().toISOString().slice(0, 10)); }}
+                        onClick={() => { setContributionPlan(plan); setContributionAmount(""); setContributionNote(""); setContributionDate(todayISO()); }}
                         className="text-gray-300 hover:text-amber-500 transition-colors p-1"
                       >
                         <StickyNote className="w-4 h-4" />
@@ -713,7 +714,7 @@ export default function SavingsPage() {
                 )}
 
                 <button
-                  onClick={() => { setContributionPlan(plan); setContributionAmount(""); setContributionNote(""); setContributionDate(new Date().toISOString().slice(0, 10)); }}
+                  onClick={() => { setContributionPlan(plan); setContributionAmount(""); setContributionNote(""); setContributionDate(todayISO()); }}
                   className="w-full flex items-center justify-center gap-2 py-2 border border-green-200 text-green-700 rounded-lg hover:bg-green-50 transition-colors text-sm font-medium"
                 >
                   <TrendingUp className="w-4 h-4" />

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
+import { toStoredDate } from "@/lib/date";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
     category,
     description,
     tags: tags ?? [],
-    date: date ? new Date(date) : new Date(),
+    date: toStoredDate(date),
     ...(commitmentId ? { commitmentId } : {}),
   });
 

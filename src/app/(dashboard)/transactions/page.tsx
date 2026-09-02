@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { PenLine, Trash2, Filter, X, CalendarDays, Search, Pencil, SlidersHorizontal, Download, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { todayISO } from "@/lib/date";
+import Link from "next/link";
 import { useSettings } from "@/contexts/SettingsContext";
 import { PageInfoTooltip } from "@/components/ui/PageInfoTooltip";
 import { MoneyInput } from "@/components/ui/MoneyInput";
@@ -29,7 +31,7 @@ const EMPTY_FORM = {
   amount: "",
   category: "",
   description: "",
-  date: new Date().toISOString().slice(0, 10),
+  date: todayISO(),
   commitmentId: "",
 };
 
@@ -198,7 +200,10 @@ export default function TransactionsPage() {
             </button>
           </div>
         </div>
-        <p className="text-gray-500 text-sm mt-1">{total} movimientos en total</p>
+        <p className="text-gray-500 text-sm mt-1">
+          {total} movimientos en total · Todos tus movimientos reales, incluidos los pagos de{" "}
+          <Link href="/commitments" className="text-green-700 font-medium hover:underline">Compromisos</Link> y los gastos variables.
+        </p>
       </div>
 
       {/* Búsqueda */}
@@ -392,7 +397,7 @@ export default function TransactionsPage() {
                 <input
                   type="date"
                   required
-                  max={new Date().toISOString().slice(0, 10)}
+                  max={todayISO()}
                   value={form.date}
                   onChange={(e) => setForm({ ...form, date: e.target.value })}
                   className="w-full px-3 py-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none text-sm text-gray-700"

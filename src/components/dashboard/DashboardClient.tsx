@@ -8,6 +8,7 @@ import {
   TrendingDown,
   Repeat2,
   ArrowRight,
+  ArrowLeftRight,
   Lightbulb,
   CheckCircle2,
   Clock,
@@ -44,6 +45,7 @@ import {
   Legend,
 } from "recharts";
 import { formatDate } from "@/lib/utils";
+import { todayISO } from "@/lib/date";
 import { useSettings } from "@/contexts/SettingsContext";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 
@@ -146,19 +148,19 @@ function OnboardingChecklist({
       done: hasCommitments,
       label: "Configura tus compromisos fijos",
       description: "Arriendo, servicios, préstamos, salario...",
-      action: <Link href="/commitments" className="text-xs text-green-600 font-medium hover:underline">Ir a Compromisos →</Link>,
+      action: <Link href="/commitments?new=expense" className="text-xs text-green-600 font-medium hover:underline">Agregar un gasto fijo →</Link>,
     },
     {
       done: hasIncome,
       label: "Registra tu primer ingreso",
       description: "Tu salario, un pago extra, lo que sea.",
-      action: <Link href="/commitments" className="text-xs text-green-600 font-medium hover:underline">Ir a Compromisos →</Link>,
+      action: <Link href="/commitments?new=income" className="text-xs text-green-600 font-medium hover:underline">Agregar un ingreso →</Link>,
     },
     {
       done: hasExpense,
       label: "Registra tu primer gasto",
       description: "Mercado, transporte, cualquier egreso.",
-      action: <Link href="/commitments" className="text-xs text-green-600 font-medium hover:underline">Ir a Compromisos →</Link>,
+      action: <Link href="/commitments?new=expense" className="text-xs text-green-600 font-medium hover:underline">Agregar un gasto →</Link>,
     },
   ];
 
@@ -226,7 +228,25 @@ function OnboardingChecklist({
       </div>
 
       {!collapsed && (
-        <div className="px-5 py-4 space-y-3">
+        <div className="px-5 py-4 space-y-4">
+          {/* Cómo funciona el flujo — 3 conceptos clave */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {[
+              { icon: Repeat2, color: "text-purple-600", bg: "bg-purple-50", title: "Compromisos", desc: "Plantillas que se repiten cada mes: arriendo, salario, préstamos…" },
+              { icon: ArrowLeftRight, color: "text-blue-600", bg: "bg-blue-50", title: "Transacciones", desc: "Tus movimientos reales del día a día." },
+              { icon: CheckCircle2, color: "text-green-600", bg: "bg-green-50", title: 'Marcar "Pagado"', desc: "Registra el gasto del mes de un compromiso." },
+            ].map(({ icon: Icon, color, bg, title, desc }) => (
+              <div key={title} className="bg-white/70 border border-green-100 rounded-xl p-3">
+                <div className={`w-7 h-7 rounded-lg ${bg} ${color} flex items-center justify-center mb-1.5`}>
+                  <Icon className="w-4 h-4" />
+                </div>
+                <p className="text-xs font-semibold text-gray-800">{title}</p>
+                <p className="text-xs text-gray-500 leading-snug mt-0.5">{desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-3">
           {steps.map((step, i) => (
             <div key={i} className="flex items-start gap-3">
               <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${step.done ? "bg-green-500" : "bg-white border-2 border-green-300"}`}>
@@ -243,6 +263,7 @@ function OnboardingChecklist({
               </div>
             </div>
           ))}
+          </div>
         </div>
       )}
     </div>
@@ -735,7 +756,7 @@ export default function DashboardClient({
                         </div>
                         {!c.paid && (
                           <button
-                            onClick={() => setPayDateModal({ commitment: c, date: new Date().toISOString().slice(0, 10) })}
+                            onClick={() => setPayDateModal({ commitment: c, date: todayISO() })}
                             disabled={payingId === c._id}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap disabled:opacity-50"
                           >
@@ -797,7 +818,7 @@ export default function DashboardClient({
                               </span>
                               {!firstPaid && (
                                 <button
-                                  onClick={() => setPayDateModal({ commitment: c, date: new Date().toISOString().slice(0, 10) })}
+                                  onClick={() => setPayDateModal({ commitment: c, date: todayISO() })}
                                   disabled={payingId === c._id}
                                   className="flex items-center gap-1 px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
                                 >
@@ -841,7 +862,7 @@ export default function DashboardClient({
                               </span>
                               {firstPaid && !secondPaid && (
                                 <button
-                                  onClick={() => setPayDateModal({ commitment: c, date: new Date().toISOString().slice(0, 10) })}
+                                  onClick={() => setPayDateModal({ commitment: c, date: todayISO() })}
                                   disabled={payingId === c._id}
                                   className="flex items-center gap-1 px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
                                 >
@@ -867,7 +888,7 @@ export default function DashboardClient({
                           <p className="text-sm font-semibold text-green-600">{fmt(c.amount)}</p>
                           {!c.paid && (
                             <button
-                              onClick={() => setPayDateModal({ commitment: c, date: new Date().toISOString().slice(0, 10) })}
+                              onClick={() => setPayDateModal({ commitment: c, date: todayISO() })}
                               disabled={payingId === c._id}
                               className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap disabled:opacity-50"
                             >
@@ -903,7 +924,7 @@ export default function DashboardClient({
                               <p className="text-xs text-gray-400">de {fmt(c.amount)}</p>
                             </div>
                             <button
-                              onClick={() => setVarPayModal({ commitment: c, amount: "", date: new Date().toISOString().slice(0, 10) })}
+                              onClick={() => setVarPayModal({ commitment: c, amount: "", date: todayISO() })}
                               className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
                             >
                               <CreditCard className="w-3.5 h-3.5" />

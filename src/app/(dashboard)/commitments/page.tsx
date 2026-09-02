@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { Plus, Pencil, Trash2, X, ChevronLeft, ChevronRight, Info, Building2, Hash, FileText, Copy, Check } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { PageInfoTooltip } from "@/components/ui/PageInfoTooltip";
@@ -101,6 +102,21 @@ export default function CommitmentsPage() {
   useEffect(() => {
     fetchCommitments();
   }, [fetchCommitments]);
+
+  // Abrir el formulario con el tipo preseleccionado cuando se llega desde el
+  // checklist de onboarding (p. ej. /commitments?new=income).
+  useEffect(() => {
+    const n = new URLSearchParams(window.location.search).get("new");
+    if (n === "income" || n === "expense") {
+      setEditing(null);
+      setLockVariable(false);
+      setForm({ ...EMPTY_FORM, type: n });
+      setFormError("");
+      setShowForm(true);
+      // Limpiar el query param para que no reabra al recargar o navegar atrás.
+      window.history.replaceState(null, "", "/commitments");
+    }
+  }, []);
 
   function openCreate() {
     setEditing(null);
@@ -676,6 +692,7 @@ export default function CommitmentsPage() {
       {/* Gastos fijos */}
       <CommitmentSection
         title="Gastos fijos"
+        description="Compromisos que se repiten cada mes con un monto constante: arriendo, servicios, préstamos, suscripciones, etc."
         items={fixedExpenses}
         type="expense"
         emptyMessage="No tienes gastos fijos configurados. Agrega tus compromisos mensuales como arriendo, servicios, préstamos, etc."
@@ -692,6 +709,10 @@ export default function CommitmentsPage() {
             <h2 className="font-semibold text-gray-900">Gastos variables del mes</h2>
             <p className="text-xs text-gray-500 mt-0.5">
               Gastos puntuales que <span className="font-medium">no se repiten</span>: restaurantes, salidas, compras ocasionales, etc. Solo aparecen en el mes que los registras.
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Cada uno se guarda también como movimiento en{" "}
+              <Link href="/transactions" className="text-green-700 font-medium hover:underline">Transacciones</Link>. ¿Es un gasto del día a día? Puedes anotarlo directo allá.
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
@@ -800,6 +821,7 @@ export default function CommitmentsPage() {
       {/* Ingresos fijos */}
       <CommitmentSection
         title="Ingresos fijos"
+        description="Ingresos que recibes cada mes con un monto constante: salario, pensión, arriendos que cobras, etc."
         items={fixedIncomes}
         type="income"
         emptyMessage="No tienes ingresos fijos. Agrega tu salario u otros ingresos de monto constante."
@@ -812,6 +834,7 @@ export default function CommitmentsPage() {
       {/* Ingresos variables */}
       <CommitmentSection
         title="Ingresos variables"
+        description="Ingresos con monto distinto cada vez: ventas, comisiones, trabajos ocasionales, etc. Registra cada pago desde El resumen."
         items={variableIncomes}
         type="income"
         emptyMessage="No tienes ingresos variables. Agrega ventas, comisiones u otros ingresos de monto distinto cada vez."
@@ -827,6 +850,7 @@ export default function CommitmentsPage() {
 
 function CommitmentSection({
   title,
+  description,
   items,
   type,
   emptyMessage,
@@ -837,6 +861,7 @@ function CommitmentSection({
   showVariableBadge = false,
 }: {
   title: string;
+  description?: string;
   items: Commitment[];
   type: "income" | "expense";
   emptyMessage: string;
@@ -854,10 +879,15 @@ function CommitmentSection({
 
   return (
     <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-900">{title}</h2>
+      <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <h2 className="font-semibold text-gray-900">{title}</h2>
+          {description && (
+            <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+          )}
+        </div>
         {activeTotal > 0 && (
-          <span className={`text-sm font-semibold ${type === "income" ? "text-green-600" : "text-red-500"}`}>
+          <span className={`text-sm font-semibold shrink-0 ${type === "income" ? "text-green-600" : "text-red-500"}`}>
             {showVariableBadge ? "Meta total activa:" : "Total activo:"} {fmt(activeTotal)}
           </span>
         )}

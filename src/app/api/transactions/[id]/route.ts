@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
+import { toStoredDate } from "@/lib/date";
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -32,7 +33,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const transaction = await Transaction.findOneAndUpdate(
     { _id: id, userId: session.user.id },
-    { type, amount, category, description, tags, date, ...(commitmentId ? { commitmentId } : {}) },
+    { type, amount, category, description, tags, ...(date ? { date: toStoredDate(date) } : {}), ...(commitmentId ? { commitmentId } : {}) },
     { new: true }
   );
 
