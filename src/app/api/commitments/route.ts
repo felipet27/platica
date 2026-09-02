@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Commitment from "@/models/Commitment";
+import Transaction from "@/models/Transaction";
+import { dateForMonth } from "@/lib/commitments";
 
 export async function GET() {
   const session = await auth();
@@ -43,6 +45,21 @@ export async function POST(req: NextRequest) {
     ...(!isVariableExpense && totalInstallments ? { totalInstallments: parseInt(totalInstallments), installmentsPaid: 0 } : {}),
     ...(paymentDetails ? { paymentDetails } : {}),
   });
+
+  // Un gasto variable es un gasto puntual que ya ocurrió: lo reflejamos como
+  // una transacción real (vinculada al compromiso) para que aparezca en la lista
+  // de transacciones y cuente en el balance del mes.
+  if (isVariableExpense) {
+    await Transaction.create({
+      userId: session.user.id,
+      type: "expense",
+      amount: commitment.amount,
+      category: commitment.category,
+      description: commitment.name,
+      date: dateForMonth(commitment.month),
+      commitmentId: commitment._id,
+    });
+  }
 
   return NextResponse.json(commitment, { status: 201 });
 }

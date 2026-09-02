@@ -83,7 +83,11 @@ async function getDashboardData(userId: string, refDate: Date) {
     ]),
     Transaction.find({ userId }).sort({ date: -1 }).limit(5).lean(),
     SavingsPlan.find({ userId, isActive: true }).lean(),
-    Commitment.find({ userId, isActive: true }).sort({ type: 1, name: 1 }).lean(),
+    // Los gastos variables ya son transacciones reales; no se muestran aquí como
+    // compromisos pendientes de pago.
+    Commitment.find({ userId, isActive: true, expenseType: { $ne: "variable" } })
+      .sort({ type: 1, name: 1 })
+      .lean(),
     Transaction.aggregate([
       {
         $match: {

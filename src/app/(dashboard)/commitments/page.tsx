@@ -80,6 +80,9 @@ export default function CommitmentsPage() {
   const [selectedMonth, setSelectedMonth] = useState(() => toYearMonth(new Date()));
   const [paymentModal, setPaymentModal] = useState<Commitment | null>(null);
   const [copied, setCopied] = useState(false);
+  // Cuando el formulario se abre específicamente para un gasto variable puntual,
+  // bloqueamos el tipo: no tiene sentido ofrecer "Ingreso" ni "¿se repite?".
+  const [lockVariable, setLockVariable] = useState(false);
   const [reminderPrompt, setReminderPrompt] = useState<{ name: string; payDay: number } | null>(null);
 
   function copyToClipboard(text: string) {
@@ -101,6 +104,7 @@ export default function CommitmentsPage() {
 
   function openCreate() {
     setEditing(null);
+    setLockVariable(false);
     setForm(EMPTY_FORM);
     setFormError("");
     setShowForm(true);
@@ -108,6 +112,7 @@ export default function CommitmentsPage() {
 
   function openCreateVariable() {
     setEditing(null);
+    setLockVariable(true);
     setForm({ ...EMPTY_FORM, type: "expense", expenseType: "variable" });
     setFormError("");
     setShowForm(true);
@@ -115,6 +120,7 @@ export default function CommitmentsPage() {
 
   function openEdit(c: Commitment) {
     setEditing(c);
+    setLockVariable(c.type === "expense" && c.expenseType === "variable");
     setFormError("");
     setForm({
       name: c.name,
@@ -259,28 +265,36 @@ export default function CommitmentsPage() {
               {isVariableExpenseForm ? "gasto variable" : "compromiso"}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {lockVariable && (
+                <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  Gasto puntual de {monthLabel(selectedMonth)}. Se registrará como una transacción de gasto.
+                </p>
+              )}
+
               {/* Tipo: gasto / ingreso */}
-              <div className="flex gap-2">
-                {(["expense", "income"] as const).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setForm({ ...form, type: t, category: "", expenseType: "fixed" })}
-                    className={`flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
-                      form.type === t
-                        ? t === "income"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-600"
-                        : "bg-gray-100 text-gray-500"
-                    }`}
-                  >
-                    {t === "income" ? "Ingreso" : "Gasto"}
-                  </button>
-                ))}
-              </div>
+              {!lockVariable && (
+                <div className="flex gap-2">
+                  {(["expense", "income"] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setForm({ ...form, type: t, category: "", expenseType: "fixed" })}
+                      className={`flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
+                        form.type === t
+                          ? t === "income"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-600"
+                          : "bg-gray-100 text-gray-500"
+                      }`}
+                    >
+                      {t === "income" ? "Ingreso" : "Gasto"}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* Para gastos: ¿fijo o puntual? */}
-              {form.type === "expense" && (
+              {!lockVariable && form.type === "expense" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     ¿Este gasto se repite cada mes?
