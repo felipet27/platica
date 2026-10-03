@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 export interface IUser extends Document {
   name: string;
   email: string;
+  emailVerified?: Date | null;
   password?: string;
   image?: string;
   twoFactorEnabled: boolean;
@@ -21,6 +22,7 @@ const UserSchema = new Schema<IUser>(
   {
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true, lowercase: true },
+    emailVerified: { type: Date, default: null },
     password: { type: String, required: false, select: false },
     image: { type: String },
     twoFactorEnabled: { type: Boolean, default: false },
