@@ -653,8 +653,8 @@ export default function CommitmentsPage() {
                   <Hash className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
                   <div className="flex-1">
                     <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">Número de cuenta / Celular</p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm text-gray-800 font-mono">{paymentModal.paymentDetails.accountNumber}</p>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="text-sm text-gray-800 font-mono flex-1 min-w-0 break-all">{paymentModal.paymentDetails.accountNumber}</p>
                       <button
                         onClick={() => copyToClipboard(paymentModal.paymentDetails!.accountNumber!)}
                         className={`flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-all font-medium shrink-0 ${
@@ -674,7 +674,7 @@ export default function CommitmentsPage() {
                   <FileText className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">Nota</p>
-                    <p className="text-sm text-gray-800 whitespace-pre-wrap">{paymentModal.paymentDetails.note}</p>
+                    <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">{paymentModal.paymentDetails.note}</p>
                   </div>
                 </div>
               )}

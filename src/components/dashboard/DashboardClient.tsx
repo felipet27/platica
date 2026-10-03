@@ -1179,9 +1179,9 @@ export default function DashboardClient({
                     </div>
                   )}
                   {payDateModal.commitment.paymentDetails?.accountNumber && (
-                    <div className="flex items-center gap-2 text-sm">
+                    <div className="flex items-center gap-2 text-sm min-w-0">
                       <Hash className="w-4 h-4 text-gray-400 shrink-0" />
-                      <span className="text-gray-700 font-mono flex-1">{payDateModal.commitment.paymentDetails.accountNumber}</span>
+                      <span className="text-gray-700 font-mono flex-1 min-w-0 break-all">{payDateModal.commitment.paymentDetails.accountNumber}</span>
                       <button
                         type="button"
                         onClick={() => copyText(payDateModal.commitment.paymentDetails!.accountNumber!, "pay-account")}
@@ -1196,7 +1196,7 @@ export default function DashboardClient({
                     </div>
                   )}
                   {payDateModal.commitment.paymentDetails?.note && (
-                    <p className="text-xs text-gray-500 whitespace-pre-wrap pl-6">{payDateModal.commitment.paymentDetails.note}</p>
+                    <p className="text-xs text-gray-500 whitespace-pre-wrap break-words pl-6">{payDateModal.commitment.paymentDetails.note}</p>
                   )}
                 </div>
               )}
@@ -1261,8 +1261,8 @@ export default function DashboardClient({
                   <Hash className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
                   <div className="flex-1">
                     <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">Número de cuenta / Celular</p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm text-gray-800 font-mono">{paymentInfo.paymentDetails.accountNumber}</p>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="text-sm text-gray-800 font-mono flex-1 min-w-0 break-all">{paymentInfo.paymentDetails.accountNumber}</p>
                       <button
                         onClick={() => copyText(paymentInfo.paymentDetails!.accountNumber!, "info-account")}
                         className={`flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-all font-medium shrink-0 ${
@@ -1282,7 +1282,7 @@ export default function DashboardClient({
                   <FileText className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">Nota</p>
-                    <p className="text-sm text-gray-800 whitespace-pre-wrap">{paymentInfo.paymentDetails.note}</p>
+                    <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">{paymentInfo.paymentDetails.note}</p>
                   </div>
                 </div>
               )}
